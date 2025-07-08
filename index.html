@@ -135,65 +135,61 @@ main {
 
     <header class="bg-gray-900/70 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-800">
     <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-        <a href="#home" class="text-2xl font-bold text-white nav-trigger font-orbitron">
-            Game<span class="text-cyan-400">Match</span>
-        </a>
-
+        <a href="#home" class="text-2xl font-bold text-white nav-trigger font-orbitron">Game<span class="text-cyan-400">Match</span></a>
+        
         <div class="hidden md:flex md:items-center md:gap-4">
-            <a href="#matchmaker" data-i18n="nav_find_game" class="bg-blue-600 text-white font-semibold px-5 py-2 rounded-lg hover:bg-blue-500 transition-all duration-300 transform hover:scale-105 nav-trigger">Finde dein Spiel</a>
+            <a href="#matchmaker" data-i18n="nav_find_game" class="bg-cyan-600 text-white font-semibold px-5 py-2 rounded-lg hover:bg-cyan-500 transition-all duration-300 transform hover:scale-105 nav-trigger"></a>
             <div id="user-auth" class="flex items-center gap-4">
-                <button id="login-btn" data-i18n="nav_login" class="font-semibold text-gray-300 hover:text-white transition-colors">Login</button>
-                <button id="register-btn" data-i18n="nav_register" class="bg-blue-600 text-white font-semibold px-4 py-1.5 rounded-lg hover:bg-blue-500 transition-colors">Registrieren</button>
-                <a href="#admin" id="admin-link" data-i18n="nav_admin" class="hidden font-semibold text-yellow-400 hover:text-yellow-300 transition-colors nav-trigger">Admin</a>
-                <a href="#news" data-i18n="nav_news" class="font-semibold text-gray-300 hover:text-white transition-colors nav-trigger">News</a>
-                <a href="#search-users" id="search-users-link" data-i18n="nav_community" class="hidden font-semibold text-gray-300 hover:text-white transition-colors nav-trigger">Community</a>
-
+                <button id="login-btn" data-i18n="nav_login" class="font-semibold text-gray-300 hover:text-white transition-colors"></button>
+                <button id="register-btn" data-i18n="nav_register" class="bg-cyan-600 text-white font-semibold px-4 py-1.5 rounded-lg hover:bg-cyan-500 transition-colors"></button>
+                <a href="#admin" id="admin-link" data-i18n="nav_admin" class="hidden font-semibold text-yellow-400 hover:text-yellow-300 transition-colors nav-trigger"></a>
+                <a href="#news" data-i18n="nav_news" class="font-semibold text-gray-300 hover:text-white transition-colors nav-trigger"></a>
+                <a href="#search-users" id="search-users-link" data-i18n="nav_community" class="hidden font-semibold text-gray-300 hover:text-white transition-colors nav-trigger"></a>
                 <div id="profile-link" class="relative group hidden">
-                <a href="#profile" class="font-semibold text-gray-300 hover:text-white transition-colors nav-trigger inline-flex items-center gap-1">
-                <span data-i18n="nav_profile">Mein Profil</span>
-                <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                <span id="unread-messages-badge" class="absolute -top-1 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden"></span>
-            </a>
-        <div class="absolute top-full -right-4 pt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg hidden group-hover:block z-10">
-        <div class="py-1">
-            <a href="#leaderboard" id="leaderboard-link" data-i18n="nav_leaderboard" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white nav-trigger">Rangliste</a>
-            <a href="https://forms.gle/zV75jDvUzJb4aNB3A" target="_blank" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">Feedback</a>
-        </div>
-    </div>
-</div>
-                <button id="logout-btn" data-i18n="nav_logout" class="hidden font-semibold text-gray-300 hover:text-white transition-colors">Logout</button>
+                    <a href="#profile" class="font-semibold text-gray-300 hover:text-white transition-colors nav-trigger inline-flex items-center gap-1">
+                        <span data-i18n="nav_profile"></span>
+                        <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        <span id="unread-messages-badge" class="absolute -top-1 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden"></span>
+                    </a>
+                    <div class="absolute top-full -right-4 pt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg hidden group-hover:block z-10">
+                        <div class="py-1">
+                            <a href="#leaderboard" data-i18n="nav_leaderboard" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white nav-trigger"></a>
+                            <a href="https://forms.gle/zV75jDvUzJb4aNB3A" target="_blank" data-i18n="nav_feedback" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"></a>
+                        </div>
+                    </div>
+                </div>
+                <button id="logout-btn" data-i18n="nav_logout" class="hidden font-semibold text-gray-300 hover:text-white transition-colors"></button>
+            </div>
+            <div class="flex items-center gap-4 ml-4 border-l border-gray-700 pl-4">
+                <a href="https://discord.gg/CTUERAwgNE" target="_blank" rel="noopener" title="Tritt unserem Discord bei!" class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317,4.369a19.791,19.791,0,0,0-4.885-1.515.074.074,0,0,0-.079.037,12.32,12.32,0,0,0-1.28,2.277,13.27,13.27,0,0,0-3.232,0,12.32,12.32,0,0,0-1.28-2.277.074.074,0,0,0-.079-.037A19.736,19.736,0,0,0,3.683,4.369a.076.076,0,0,0-.044.094,19.231,19.231,0,0,0,2.2,8.028.076.076,0,0,0,.068.044,13.84,13.84,0,0,0,1.386.2,11.83,11.83,0,0,0,1.02.43.075.075,0,0,0,.078-.01,11.045,11.045,0,0,0,1.9-.443.075.075,0,0,0,.078.01c.281.1.571.2.85.29a.075.075,0,0,0,.08-.044,14.3,14.3,0,0,0,1.386-.2.076.076,0,0,0,.068-.044,19.283,19.283,0,0,0,2.2-8.028.076.076,0,0,0-.044-.094Zm-8.47,9.448a2.912,2.912,0,0,1-2.936-2.913,2.913,2.913,0,0,1,2.936-2.913,2.912,2.912,0,1,1,0,5.825Zm5.213,0a2.912,2.912,0,0,1-2.936-2.913,2.913,2.913,0,0,1,2.936-2.913,2.912,2.912,0,1,1,0,5.825Z"/></svg>
+                </a>
+                <button onclick="changeLang('de')" title="Deutsch" class="opacity-70 hover:opacity-100 transition-opacity">🇩🇪</button>
+                <button onclick="changeLang('en')" title="English" class="opacity-70 hover:opacity-100 transition-opacity">🇬🇧</button>
             </div>
         </div>
-        <div class="flex items-center gap-4 ml-4 border-l border-gray-700 pl-4">
-    <a href="https://discord.gg/CTUERAwgNE" target="_blank" rel="noopener" title="Tritt unserem Discord bei!" class="text-gray-400 hover:text-white transition-colors">
-        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M20.317,4.369a19.791,19.791,0,0,0-4.885-1.515.074.074,0,0,0-.079.037,12.32,12.32,0,0,0-1.28,2.277,13.27,13.27,0,0,0-3.232,0,12.32,12.32,0,0,0-1.28-2.277.074.074,0,0,0-.079-.037A19.736,19.736,0,0,0,3.683,4.369a.076.076,0,0,0-.044.094,19.231,19.231,0,0,0,2.2,8.028.076.076,0,0,0,.068.044,13.84,13.84,0,0,0,1.386.2,11.83,11.83,0,0,0,1.02.43.075.075,0,0,0,.078-.01,11.045,11.045,0,0,0,1.9-.443.075.075,0,0,0,.078.01c.281.1.571.2.85.29a.075.075,0,0,0,.08-.044,14.3,14.3,0,0,0,1.386-.2.076.076,0,0,0,.068-.044,19.283,19.283,0,0,0,2.2-8.028.076.076,0,0,0-.044-.094Zm-8.47,9.448a2.912,2.912,0,0,1-2.936-2.913,2.913,2.913,0,0,1,2.936-2.913,2.912,2.912,0,1,1,0,5.825Zm5.213,0a2.912,2.912,0,0,1-2.936-2.913,2.913,2.913,0,0,1,2.936-2.913,2.912,2.912,0,1,1,0,5.825Z"/>
-        </svg>
-    </a>
-    <button onclick="changeLang('de')" title="Deutsch" class="opacity-70 hover:opacity-100 transition-opacity">🇩🇪</button>
-    <button onclick="changeLang('en')" title="English" class="opacity-70 hover:opacity-100 transition-opacity">🇬🇧</button>
-</div>
+        
         <div class="md:hidden">
-            <button id="mobile-menu-btn" class="text-white">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
-                </svg>
+            <button id="mobile-menu-btn" class="text-white z-50 relative">
+                <svg id="menu-open-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                <svg id="menu-close-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
     </nav>
+</header>
 
-    <div id="mobile-menu" class="hidden md:hidden">
-        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 text-center">
-            <a href="#matchmaker" data-i18n="nav_find_game" class="block bg-blue-600 text-white font-semibold px-3 py-2 rounded-md nav-trigger">Finde dein Spiel</a>
-            <a href="#news" data-i18n="nav_news" class="block text-gray-300 hover:text-white px-3 py-2 rounded-md nav-trigger">News</a>
-            <a href="https://forms.gle/zV75jDvUzJb4aNB3A" target="_blank" class="block text-gray-300 hover:text-white px-3 py-2 rounded-md nav-trigger">Feedback</a>
-            <a href="#search-users" id="mobile-search-users-link" data-i18n="nav_community" class="block text-gray-300 hover:text-white px-3 py-2 rounded-md nav-trigger">Community</a>
-            <a href="#profile" id="mobile-profile-link" data-i18n="nav_profile" class="block text-gray-300 hover:text-white px-3 py-2 rounded-md nav-trigger">Mein Profil</a>
-            <a href="#leaderboard" id="mobile-leaderboard-link" data-i18n="nav_leaderboard" class="block text-gray-300 hover:text-white px-3 py-2 rounded-md nav-trigger">Rangliste</a>
-            <a href="#admin" id="mobile-admin-link" data-i18n="nav_admin" class="block text-yellow-400 hover:text-yellow-300 px-3 py-2 rounded-md nav-trigger">Admin</a>
-            <button id="mobile-logout-btn" data-i18n="nav_logout" class="block w-full text-left text-gray-300 hover:text-white px-3 py-2 rounded-md">Logout</button>
-        </div>
+<div id="mobile-menu" class="hidden fixed inset-0 bg-gray-900/95 backdrop-blur-sm z-40 flex flex-col items-center justify-center transition-opacity duration-300">
+    <div class="space-y-4 text-center">
+        <a href="#matchmaker" data-i18n="nav_find_game" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
+        <a href="#news" data-i18n="nav_news" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
+        <a href="#search-users" id="mobile-search-users-link" data-i18n="nav_community" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
+        <a href="#profile" id="mobile-profile-link" data-i18n="nav_profile" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
+        <a href="#leaderboard" id="mobile-leaderboard-link" data-i18n="nav_leaderboard" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
+        <a href="https://forms.gle/zV75jDvUzJb4aNB3A" target="_blank" data-i18n="nav_feedback" class="block text-2xl text-gray-300 hover:text-cyan-400"></a>
+        <a href="#admin" id="mobile-admin-link" data-i18n="nav_admin" class="block text-2xl text-yellow-400 hover:text-yellow-300 nav-trigger"></a>
+        <button id="mobile-logout-btn" data-i18n="nav_logout" class="block w-full text-2xl text-gray-300 hover:text-cyan-400"></button>
     </div>
+</div>
 </header>
 
     <main>
@@ -263,7 +259,7 @@ main {
                     <div class="mt-24 bg-gray-900 border border-gray-700 rounded-2xl p-8 text-center">
                         <h3 data-i18n="guest_cta_title" class="text-2xl font-bold text-white"></h3>
                         <p data-i18n="guest_cta_desc" class="mt-4 text-gray-400 max-w-2xl mx-auto"></p>
-                        <div class="mt-6 flex items-center justify-center gap-x-6">
+                        <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-x-6">
                             <button data-i18n="guest_cta_register" id="open-register-modal-btn" class="rounded-md bg-cyan-500 px-6 py-3 text-sm font-semibold text-gray-900 shadow-sm hover:bg-cyan-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600"></button>
                             <button data-i18n="guest_cta_login" id="open-login-modal-btn" class="text-sm font-semibold leading-6 text-white hover:underline"></button>
                         </div>
@@ -332,7 +328,7 @@ main {
         <h2 data-i18n="community_title" class="text-4xl font-bold text-white mb-4 text-center"></h2>
         <p data-i18n="community_subtitle" class="text-gray-400 text-center mb-8"></p>
 
-        <div id="community-tabs" class="border-b border-gray-700 mb-8 flex justify-center gap-6">
+        <div id="community-tabs" class="border-b border-gray-700 mb-8 flex justify-start sm:justify-center gap-6 overflow-x-auto whitespace-nowrap">
             <button data-i18n="community_tab_discover" data-target="community-content-suche" class="community-tab-btn font-semibold pb-3 border-b-2"></button>
             <button data-i18n="community_tab_feed" data-target="community-content-feed" class="community-tab-btn font-semibold pb-3 border-b-2"></button>
         </div>
@@ -411,7 +407,7 @@ main {
                 <input type="file" id="avatar-upload" class="hidden" accept="image/png, image/jpeg">
             </div>
 
-            <div id="profile-tabs" class="border-b border-gray-700 mb-6 flex justify-center gap-6">
+            <div id="profile-tabs" class="border-b border-gray-700 mb-6 flex justify-start sm:justify-center gap-6 overflow-x-auto whitespace-nowrap">
                 <button data-i18n="profile_tab_games" data-target="profile-content-spiele" class="profile-tab-btn font-semibold pb-3 border-b-2"></button>
                 <button data-i18n="profile_tab_friends" data-target="profile-content-freunde" class="profile-tab-btn font-semibold pb-3 border-b-2"></button>
                 <button data-i18n="profile_tab_stats" data-target="profile-content-stats" class="profile-tab-btn font-semibold pb-3 border-b-2"></button>
@@ -454,7 +450,7 @@ main {
                 </div>
 
                 <div id="profile-content-stats" class="profile-tab-content text-center active">
-                    <div class="flex items-center justify-center gap-8 text-lg">
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-lg">
                         <div class="bg-gray-900 p-4 rounded-lg text-center">
                             <span class="block font-bold text-2xl text-yellow-400" id="profile-user-rank">...</span>
                             <span data-i18n="profile_stat_rank" class="text-gray-400"></span>
@@ -1403,20 +1399,32 @@ document.addEventListener('DOMContentLoaded', () => {
     googleSignUpBtn.addEventListener('click', signInWithGoogle);
 
     logoutBtn.addEventListener('click', handleLogout);
+
+    // =======================================================
+    // ▼▼▼ NEUER CODE FÜR DIE MOBILE NAVIGATION ▼▼▼
+    // =======================================================
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const mobileMenu = document.getElementById('mobile-menu');
+    const openIcon = document.getElementById('menu-open-icon');
+    const closeIcon = document.getElementById('menu-close-icon');
 
-    if (mobileMenuBtn && mobileMenu) {
+    if (mobileMenuBtn && mobileMenu && openIcon && closeIcon) {
         mobileMenuBtn.addEventListener('click', () => {
             mobileMenu.classList.toggle('hidden');
+            openIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
         });
 
+        // Schließt das Menü, wenn ein Link darin geklickt wird
         mobileMenu.addEventListener('click', (e) => {
-            if (e.target.closest('a.nav-trigger')) {
+            if (e.target.closest('a.nav-trigger') || e.target.closest('button')) {
                 mobileMenu.classList.add('hidden');
+                openIcon.classList.remove('hidden');
+                closeIcon.classList.add('hidden');
             }
         });
     }
+    // =======================================================
     
     const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
     if (mobileLogoutBtn) {
@@ -1493,27 +1501,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     displayLatestNewsOnHome();
 
-    // =======================================================
-    // ▼▼▼ HIER IST DER NEUE BLOCK FÜR DIE SPIEL-KARTEN ▼▼▼
-    // =======================================================
     const savedGamesListContainer = document.getElementById('saved-games-list');
     if (savedGamesListContainer) {
         savedGamesListContainer.addEventListener('click', (e) => {
             const card = e.target.closest('.game-card-trigger');
             if (card) {
-                // Daten sicher aus den data-Attributen auslesen
                 const gameId = card.dataset.gameId;
                 const title = card.dataset.gameTitle;
                 const imageUrl = card.dataset.gameImageUrl;
                 const description = card.dataset.gameDescription;
-                const isOwnProfile = card.dataset.isOwnProfile === 'true'; // Konvertiert String zu Boolean
+                const isOwnProfile = card.dataset.isOwnProfile === 'true'; 
 
-                // Die Modal-Funktion mit sauberen Daten aufrufen
                 openCommentModal(gameId, title, imageUrl, description, isOwnProfile);
             }
         });
     }
-    // =======================================================
 
     Promise.all([loadTagsFromAPI(), loadGenresFromAPI()]).then(() => {
         console.log("Alle Tags und Genres erfolgreich geladen.");
