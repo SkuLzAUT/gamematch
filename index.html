@@ -1327,12 +1327,6 @@ async function incrementVisitCounter() {
     counterEl.textContent = 'Fehler';
   }
 }
-
-
-  document.addEventListener('DOMContentLoaded', () => {
-    incrementVisitCounter();
-  });
-
 function closeAuthModal() {
     ui.authModal.classList.add('opacity-0');
     ui.authModalContent.classList.add('scale-95');
@@ -1340,300 +1334,7 @@ function closeAuthModal() {
         ui.authModal.classList.add('invisible');
     }, 300); // Wait for transition to finish
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-    // =======================================================
-    // ▼▼▼ NEUER CODE FÜR DEN GIVEAWAY-BANNER ▼▼▼
-    // =======================================================
-    const giveawayBanner = document.getElementById('giveaway-banner');
-    const closeGiveawayBanner = document.getElementById('close-giveaway-banner');
-
-    if (giveawayBanner && closeGiveawayBanner) {
-        // Prüfen, ob der Banner in dieser Sitzung bereits geschlossen wurde
-        if (sessionStorage.getItem('giveawayBannerClosed') !== 'true') {
-            giveawayBanner.classList.remove('hidden');
-        }
-
-        // Event Listener für den Schließen-Button
-        closeGiveawayBanner.addEventListener('click', () => {
-            giveawayBanner.classList.add('hidden');
-            // Banner für die aktuelle Sitzung als geschlossen markieren
-            sessionStorage.setItem('giveawayBannerClosed', 'true');
-        });
-    }
-    // =======================================================
-
-    // UI Referenzen für Auth-Buttons, die immer da sind
-    const loginBtn = document.getElementById('login-btn');
-    const registerBtn = document.getElementById('register-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-
-    // Home-page buttons
-    const openLoginModalBtn = document.getElementById('open-login-modal-btn');
-    const openRegisterModalBtn = document.getElementById('open-register-modal-btn');
-
-    // Modal elements
-    const closeAuthModalBtn = document.getElementById('close-auth-modal-btn');
-    const switchToRegisterBtn = document.getElementById('switch-to-register');
-    const switchToLoginBtn = document.getElementById('switch-to-login');
-    const loginForm = document.getElementById('login-form');
-    const registerForm = document.getElementById('register-form');
-    const googleSignInBtn = document.getElementById('google-signin-btn');
-    const googleSignUpBtn = document.getElementById('google-signup-btn');
-
-    // 1. Hash-Änderungen Navigation
-    window.addEventListener('hashchange', handleNavigation);
-    const filterInput = document.getElementById('user-search-filter');
-    if (filterInput) {
-        filterInput.addEventListener('input', () => {
-            const filterValue = filterInput.value.toLowerCase().trim();
-            const cards = document.querySelectorAll('#user-list > div');
-
-            cards.forEach(card => {
-                const username = card.querySelector('h3')?.textContent.toLowerCase() || '';
-                card.style.display = username.includes(filterValue) ? 'block' : 'none';
-            });
-        });
-    }
-
-    // 2. Klick-Listener
-    document.body.addEventListener('click', (e) => {
-        const navTrigger = e.target.closest('.nav-trigger');
-        if (navTrigger) {
-            e.preventDefault();
-            window.location.hash = navTrigger.getAttribute('href');
-        }
-        
-        if (e.target.id === 'reset-quiz') {
-            startConversation();
-        }
-    });
-    
-    // 3. Auth-bezogene Listener
-    loginBtn.addEventListener('click', () => openAuthModal('login'));
-    registerBtn.addEventListener('click', () => openAuthModal('register'));
-    if(openLoginModalBtn) openLoginModalBtn.addEventListener('click', () => openAuthModal('login'));
-    if(openRegisterModalBtn) openRegisterModalBtn.addEventListener('click', () => openAuthModal('register'));
-
-    closeAuthModalBtn.addEventListener('click', closeAuthModal);
-    ui.authModal.addEventListener('click', (e) => {
-        if (e.target === ui.authModal) {
-            closeAuthModal();
-        }
-    });
-
-    switchToRegisterBtn.addEventListener('click', () => openAuthModal('register'));
-    switchToLoginBtn.addEventListener('click', () => openAuthModal('login'));
-
-    loginForm.addEventListener('submit', handleEmailLogin);
-    registerForm.addEventListener('submit', handleEmailRegister);
-    
-    googleSignInBtn.addEventListener('click', signInWithGoogle);
-    googleSignUpBtn.addEventListener('click', signInWithGoogle);
-
-    logoutBtn.addEventListener('click', handleLogout);
-
-    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-    const mobileMenu = document.getElementById('mobile-menu');
-    const openIcon = document.getElementById('menu-open-icon');
-    const closeIcon = document.getElementById('menu-close-icon');
-
-    if (mobileMenuBtn && mobileMenu && openIcon && closeIcon) {
-        mobileMenuBtn.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-            openIcon.classList.toggle('hidden');
-            closeIcon.classList.toggle('hidden');
-        });
-
-        mobileMenu.addEventListener('click', (e) => {
-            if (e.target.closest('a.nav-trigger') || e.target.closest('button')) {
-                mobileMenu.classList.add('hidden');
-                openIcon.classList.remove('hidden');
-                closeIcon.classList.add('hidden');
-            }
-        });
-    }
-    
-    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
-    if (mobileLogoutBtn) {
-        mobileLogoutBtn.addEventListener('click', handleLogout);
-    }
-    const mobileLangSwitcher = document.getElementById('mobile-lang-switcher');
-    if (mobileLangSwitcher) {
-         mobileLangSwitcher.addEventListener('click', () => {
-            const newLang = currentLang === 'de' ? 'en' : 'de';
-            setLanguage(newLang);
-        });
-    }
-    const chatForm = document.getElementById('chat-form');
-    if (chatForm) {
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const messageInput = document.getElementById('chat-message-input');
-            const messageText = messageInput.value;
-
-            if (currentOpenChatId && messageText) {
-                await sendMessage(currentOpenChatId, messageText);
-                messageInput.value = '';
-            }
-        });
-    }
-
-    const backToGameListBtn = document.getElementById('back-to-gamelist-btn');
-    if (backToGameListBtn) {
-        backToGameListBtn.addEventListener('click', () => {
-            document.getElementById('mitspieler-results-view').classList.add('hidden');
-            document.getElementById('mitspieler-gamelist-view').classList.remove('hidden');
-        });
-    }
-
-    const adminUserFilter = document.getElementById('admin-user-filter');
-    if (adminUserFilter) {
-        adminUserFilter.addEventListener('input', (e) => {
-            const filterText = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#admin-user-list-body tr');
-
-            rows.forEach(row => {
-                const rowText = row.textContent.toLowerCase();
-                if (rowText.includes(filterText)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
-    }
-    const blogPostForm = document.getElementById('blog-post-form');
-    if (blogPostForm) {
-        blogPostForm.addEventListener('submit', handleBlogPostSubmit);
-    }
-    const clearBlogFormBtn = document.getElementById('clear-blog-form');
-    if(clearBlogFormBtn){
-        clearBlogFormBtn.addEventListener('click', () => {
-             document.getElementById('blog-post-form').reset();
-             document.getElementById('blog-post-id').value = '';
-        });
-    }
-    const adminTabs = document.getElementById('admin-tabs');
-    if (adminTabs) {
-        adminTabs.addEventListener('click', (e) => {
-            const clickedButton = e.target.closest('.profile-tab-btn');
-            if (!clickedButton) return;
-    
-            adminTabs.querySelectorAll('.profile-tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('#admin-tab-content-container .profile-tab-content').forEach(content => content.classList.remove('active'));
-    
-            clickedButton.classList.add('active');
-            document.getElementById(clickedButton.dataset.target).classList.add('active');
-        });
-    }
-    displayLatestNewsOnHome();
-
-    const savedGamesListContainer = document.getElementById('saved-games-list');
-    if (savedGamesListContainer) {
-        savedGamesListContainer.addEventListener('click', (e) => {
-            const card = e.target.closest('.game-card-trigger');
-            if (card) {
-                const gameId = card.dataset.gameId;
-                const title = card.dataset.gameTitle;
-                const imageUrl = card.dataset.gameImageUrl;
-                const description = card.dataset.gameDescription;
-                const isOwnProfile = card.dataset.isOwnProfile === 'true'; 
-
-                openCommentModal(gameId, title, imageUrl, description, isOwnProfile);
-            }
-        });
-    }
-
-    Promise.all([loadTagsFromAPI(), loadGenresFromAPI()]).then(() => {
-        console.log("Alle Tags und Genres erfolgreich geladen.");
-    });
-    
-    handleNavigation();
-});
 let unsubscribeFromUserDoc = null; 
-
-auth.onAuthStateChanged(user => {
-    // Dieser Block definiert, welche Elemente ein- oder ausgeblendet werden
-    const authElements = {
-        loginBtn: document.getElementById('login-btn'),
-        registerBtn: document.getElementById('register-btn'),
-        logoutBtn: document.getElementById('logout-btn'),
-        profileLink: document.getElementById('profile-link'),
-        searchUsersLink: document.getElementById('search-users-link'),
-        leaderboardLink: document.getElementById('leaderboard-link'),
-        unreadBadge: document.getElementById('unread-messages-badge'),
-        adminLink: document.getElementById('admin-link'),
-        mobileLeaderboardLink: document.getElementById('mobile-leaderboard-link'),
-        mobileSearchUsersLink: document.getElementById('mobile-search-users-link'),
-        mobileProfileLink: document.getElementById('mobile-profile-link'),
-        mobileAdminLink: document.getElementById('mobile-admin-link'),
-        mobileLogoutBtn: document.getElementById('mobile-logout-btn')
-    };
-
-    // KORREKTUR: Variable für die Challenge-Box nur einmal hier oben deklarieren
-    const homeChallengeContainer = document.getElementById('home-daily-challenge');
-
-    const isLoggedIn = !!user;
-
-    // Desktop-Links
-    authElements.loginBtn.classList.toggle('hidden', isLoggedIn);
-    authElements.registerBtn.classList.toggle('hidden', isLoggedIn);
-    authElements.logoutBtn.classList.toggle('hidden', !isLoggedIn);
-    authElements.profileLink.classList.toggle('hidden', !isLoggedIn);
-    authElements.searchUsersLink.classList.toggle('hidden', !isLoggedIn);
-    authElements.leaderboardLink.classList.toggle('hidden', !isLoggedIn);
-    authElements.adminLink.classList.add('hidden'); // Standardmäßig verstecken
-
-    // Mobile Links
-    if(authElements.mobileLeaderboardLink) authElements.mobileLeaderboardLink.style.display = isLoggedIn ? 'block' : 'none';
-    if(authElements.mobileSearchUsersLink) authElements.mobileSearchUsersLink.style.display = isLoggedIn ? 'block' : 'none';
-    if(authElements.mobileProfileLink) authElements.mobileProfileLink.style.display = isLoggedIn ? 'block' : 'none';
-    if(authElements.mobileLogoutBtn) authElements.mobileLogoutBtn.style.display = isLoggedIn ? 'block' : 'none';
-    if(authElements.mobileAdminLink) authElements.mobileAdminLink.style.display = 'none'; // Standardmäßig verstecken
-
-
-    if (isLoggedIn) {
-        // Starte einen Listener auf das Nutzerdokument
-        unsubscribeFromUserDoc = db.collection('users').doc(user.uid).onSnapshot(doc => {
-            if (doc.exists) {
-                const userData = doc.data();
-
-                const totalUnread = userData.totalUnreadMessages || 0;
-                if (totalUnread > 0) {
-                    authElements.unreadBadge.textContent = totalUnread > 9 ? '9+' : totalUnread;
-                    authElements.unreadBadge.classList.remove('hidden');
-                } else {
-                    authElements.unreadBadge.classList.add('hidden');
-                }
-
-                // Prüfe, ob der Nutzer Admin ist (für Desktop UND Mobile)
-                if (userData.isAdmin === true) {
-                    authElements.adminLink.classList.remove('hidden');
-                    if(authElements.mobileAdminLink) authElements.mobileAdminLink.style.display = 'block';
-                }
-            }
-        });
-        
-        // KORREKTUR: Vorhandene Variable verwenden, um Challenge anzuzeigen
-        if (homeChallengeContainer) {
-             homeChallengeContainer.classList.remove('hidden');
-             displayDailyChallengeForHome();
-        }
-
-    } else { // Wenn NICHT eingeloggt
-        if (unsubscribeFromUserDoc) {
-            unsubscribeFromUserDoc();
-        }
-        if(authElements.unreadBadge) authElements.unreadBadge.classList.add('hidden');
-
-        // KORREKTUR: Vorhandene Variable verwenden, um Challenge auszublenden
-        if (homeChallengeContainer) {
-            homeChallengeContainer.classList.add('hidden');
-        }
-    }
-});
-
 // +++ NEUE, VERBESSERTE AUTH-FUNKTIONEN +++
 async function handleEmailRegister(event) {
     event.preventDefault();
@@ -3865,113 +3566,6 @@ async function grantXpAndCheckLevelUp(userId, amount) {
         console.error("Fehler beim Vergeben von XP:", error);
     }
 }
- // Cookie Management
-        document.addEventListener('DOMContentLoaded', () => {
-            const cookieBanner = document.getElementById('cookie-banner');
-            const cookieSettingsModal = document.getElementById('cookie-settings-modal');
-            const openCookieSettings = document.getElementById('open-cookie-settings');
-            const closeCookieSettings = document.getElementById('close-cookie-settings');
-            const saveCookieSettings = document.getElementById('save-cookie-settings');
-            const acceptNecessary = document.getElementById('accept-necessary-cookies');
-            const acceptAll = document.getElementById('accept-all-cookies');
-
-            // Prüfen ob Cookie-Einstellungen bereits gesetzt wurden
-            const cookieConsent = localStorage.getItem('cookieConsent');
-            
-            if (!cookieConsent) {
-                // Zeige Banner wenn keine Einstellungen gespeichert sind
-                cookieBanner.classList.remove('hidden');
-            } else {
-                // Cookie-Einstellungen anwenden
-                applyCookieSettings(JSON.parse(cookieConsent));
-            }
-
-            // Event Listeners
-            openCookieSettings.addEventListener('click', () => {
-            const currentSettings = JSON.parse(localStorage.getItem('cookieConsent')) || {
-            necessary: true,
-            functional: false,
-            analytics: false
-            };
-    
-            document.getElementById('functional-cookies').checked = currentSettings.functional;
-            document.getElementById('analytics-cookies').checked = currentSettings.analytics;
-    
-            cookieSettingsModal.classList.remove('invisible', 'opacity-0');
-            });
-
-            closeCookieSettings.addEventListener('click', () => {
-                cookieSettingsModal.classList.add('opacity-0');
-                setTimeout(() => cookieSettingsModal.classList.add('invisible'), 300);
-            });
-
-            saveCookieSettings.addEventListener('click', () => {
-                const newSettings = {
-                    necessary: true, // immer aktiv
-                    functional: document.getElementById('functional-cookies').checked,
-                    analytics: document.getElementById('analytics-cookies').checked
-                };
-                
-                localStorage.setItem('cookieConsent', JSON.stringify(newSettings));
-                applyCookieSettings(newSettings);
-                
-                cookieSettingsModal.classList.add('opacity-0');
-                setTimeout(() => {
-                    cookieSettingsModal.classList.add('invisible');
-                    cookieBanner.classList.add('hidden');
-                }, 300);
-                
-                alert('Deine Einstellungen wurden gespeichert.');
-            });
-
-            acceptNecessary.addEventListener('click', () => {
-                const settings = {
-                    necessary: true,
-                    functional: false,
-                    analytics: false
-                };
-                
-                localStorage.setItem('cookieConsent', JSON.stringify(settings));
-                applyCookieSettings(settings);
-                cookieBanner.classList.add('hidden');
-            });
-
-            acceptAll.addEventListener('click', () => {
-                const settings = {
-                    necessary: true,
-                    functional: true,
-                    analytics: true
-                };
-                
-                localStorage.setItem('cookieConsent', JSON.stringify(settings));
-                applyCookieSettings(settings);
-                cookieBanner.classList.add('hidden');
-            });
-
-            function applyCookieSettings(settings) {
-                // Hier würdest du die verschiedenen Cookie-Typen basierend auf den Einstellungen laden/blockieren
-                console.log('Cookie Einstellungen angewendet:', settings);
-                
-                // Beispiel für Google Analytics (wenn implementiert):
-                if (settings.analytics) {
-                    // loadGoogleAnalytics();
-                } else {
-                    // blockGoogleAnalytics();
-                }
-                
-                // Für Firebase (wenn verwendet):
-                if (settings.functional) {
-                    // Firebase-Funktionalität aktivieren
-                } else {
-                    // Nur notwendige Firebase-Funktionen belassen
-                }
-            }
-        });
-        /**
- * Ändert den 'isBanned'-Status eines Nutzers in der Datenbank.
- * @param {string} userId - Die UID des Nutzers.
- * @param {boolean} isCurrentlyBanned - Der aktuelle Sperrstatus.
- */
 async function toggleUserBan(userId, isCurrentlyBanned) {
     if (!confirm(`Möchtest du diesen Nutzer wirklich ${isCurrentlyBanned ? 'entsperren' : 'sperren'}?`)) {
         return;
@@ -4188,6 +3782,103 @@ async function displayLatestNewsOnHome() {
         container.innerHTML = '<p class="text-red-400 lg:col-span-2">Beiträge konnten nicht geladen werden.</p>';
     }
 }
+// GANZ AM ENDE DEINES SCRIPT-BLOCKS EINFÜGEN
+
+document.addEventListener('DOMContentLoaded', () => {
+    // --- TEIL A: DER AUTH-LISTENER ---
+    // Er muss hier rein, damit er erst startet, wenn die Seite bereit ist.
+    auth.onAuthStateChanged(user => {
+        const isLoggedIn = !!user;
+        
+        // UI Elemente, die vom Login-Status abhängen
+        const authElements = {
+            loginBtn: document.getElementById('login-btn'),
+            registerBtn: document.getElementById('register-btn'),
+            logoutBtn: document.getElementById('logout-btn'),
+            profileLink: document.getElementById('profile-link'),
+            searchUsersLink: document.getElementById('search-users-link'),
+            leaderboardLink: document.getElementById('leaderboard-link'),
+            unreadBadge: document.getElementById('unread-messages-badge'),
+            adminLink: document.getElementById('admin-link'),
+            mobileLeaderboardLink: document.getElementById('mobile-leaderboard-link'),
+            mobileSearchUsersLink: document.getElementById('mobile-search-users-link'),
+            mobileProfileLink: document.getElementById('mobile-profile-link'),
+            mobileAdminLink: document.getElementById('mobile-admin-link'),
+            mobileLogoutBtn: document.getElementById('mobile-logout-btn')
+        };
+
+        // UI Logik hier bündeln
+        if (authElements.loginBtn) authElements.loginBtn.classList.toggle('hidden', isLoggedIn);
+        if (authElements.registerBtn) authElements.registerBtn.classList.toggle('hidden', isLoggedIn);
+        if (authElements.logoutBtn) authElements.logoutBtn.classList.toggle('hidden', !isLoggedIn);
+        if (authElements.profileLink) authElements.profileLink.classList.toggle('hidden', !isLoggedIn);
+        if (authElements.searchUsersLink) authElements.searchUsersLink.classList.toggle('hidden', !isLoggedIn);
+        if (authElements.leaderboardLink) authElements.leaderboardLink.classList.toggle('hidden', !isLoggedIn);
+        if (authElements.adminLink) authElements.adminLink.classList.add('hidden');
+        if (authElements.mobileLeaderboardLink) authElements.mobileLeaderboardLink.style.display = isLoggedIn ? 'block' : 'none';
+        if (authElements.mobileSearchUsersLink) authElements.mobileSearchUsersLink.style.display = isLoggedIn ? 'block' : 'none';
+        if (authElements.mobileProfileLink) authElements.mobileProfileLink.style.display = isLoggedIn ? 'block' : 'none';
+        if (authElements.mobileLogoutBtn) authElements.mobileLogoutBtn.style.display = isLoggedIn ? 'block' : 'none';
+        if (authElements.mobileAdminLink) authElements.mobileAdminLink.style.display = 'none';
+
+        if (isLoggedIn) {
+            unsubscribeFromUserDoc = db.collection('users').doc(user.uid).onSnapshot(doc => {
+                 if (doc.exists) {
+                    const userData = doc.data();
+                    const totalUnreadMessages = userData.totalUnreadMessages || 0;
+                    const pendingRequests = userData.pendingFriendRequests || 0;
+                    const totalNotifications = totalUnreadMessages + pendingRequests;
+
+                    if (totalNotifications > 0 && authElements.unreadBadge) {
+                        authElements.unreadBadge.textContent = totalNotifications > 9 ? '9+' : totalNotifications;
+                        authElements.unreadBadge.classList.remove('hidden');
+                    } else if(authElements.unreadBadge) {
+                        authElements.unreadBadge.classList.add('hidden');
+                    }
+
+                    if (userData.isAdmin === true && authElements.adminLink) {
+                        authElements.adminLink.classList.remove('hidden');
+                        if(authElements.mobileAdminLink) authElements.mobileAdminLink.style.display = 'block';
+                    }
+                }
+            });
+        } else {
+            if (unsubscribeFromUserDoc) unsubscribeFromUserDoc();
+            if (document.getElementById('unread-messages-badge')) document.getElementById('unread-messages-badge').classList.add('hidden');
+        }
+    });
+
+    // --- TEIL B: ALLE ANDEREN EVENT-LISTENER UND INITIALISIERUNGEN ---
+    // Hier fügst du den Code aus den alten DOMContentLoaded-Blöcken ein.
+    
+    // Giveaway Banner
+    const giveawayBanner = document.getElementById('giveaway-banner');
+    const closeGiveawayBanner = document.getElementById('close-giveaway-banner');
+    if (giveawayBanner && closeGiveawayBanner) {
+        if (sessionStorage.getItem('giveawayBannerClosed') !== 'true') {
+            giveawayBanner.classList.remove('hidden');
+        }
+        closeGiveawayBanner.addEventListener('click', () => {
+            giveawayBanner.classList.add('hidden');
+            sessionStorage.setItem('giveawayBannerClosed', 'true');
+        });
+    }
+
+    // Cookie Management
+    // ... (Hier den kompletten Cookie-Code einfügen) ...
+
+    // Allgemeine UI-Elemente
+    // ... (Hier alle addEventListener für die Auth-Buttons, Mobile Menu, etc. einfügen) ...
+
+    // --- TEIL C: START-FUNKTIONEN ---
+    // Diese werden ganz am Ende aufgerufen.
+    incrementVisitCounter();
+    Promise.all([loadTagsFromAPI(), loadGenresFromAPI()]).then(() => {
+        console.log("Alle Tags und Genres erfolgreich geladen.");
+    });
+    handleNavigation();
+    window.addEventListener('hashchange', handleNavigation);
+});
 </script>
 
 </body>
