@@ -132,7 +132,15 @@ main {
     </style>
 </head>
 <body class="bg-gray-900 text-gray-50 antialiased overflow-x-hidden">
-
+<div id="giveaway-banner" class="hidden bg-yellow-500 text-black p-4 text-center relative">
+    <p class="font-semibold">
+        <span data-i18n="giveaway_banner_title"></span>
+        <span data-i18n="giveaway_banner_text" class="font-normal ml-2"></span>
+    </p>
+    <button id="close-giveaway-banner" class="absolute top-1/2 right-4 -translate-y-1/2 text-black hover:text-gray-800">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+    </button>
+</div>
     <header class="bg-gray-900/70 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-800">
     <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
         <a href="#home" class="text-2xl font-bold text-white nav-trigger font-orbitron">Game<span class="text-cyan-400">Match</span></a>
@@ -824,7 +832,7 @@ const translations = {
       "feature_crew_title": "Finde deine Crew",
       "feature_crew_desc": "Verbinde dich mit Gamern, die deinen Geschmack teilen. Vergleicht eure Sammlungen, entdeckt gemeinsame Favoriten und werdet Teil einer wachsenden Community.",
       "guest_cta_title": "Bereit für dein nächstes Lieblingsspiel?",
-      "guest_cta_desc": "Als Gast kannst du unsere KI <strong>3-mal täglich</strong> kostenlos testen. <strong>Registriere dich jetzt</strong>, um unbegrenzte Vorschläge und alle oben genannten Features freizuschalten.",
+      "guest_cta_desc": "Als Gast kannst du unsere KI <strong>2-mal täglich</strong> kostenlos testen. <strong>Registriere dich jetzt</strong>, um unbegrenzte Vorschläge und alle oben genannten Features freizuschalten.",
       "guest_cta_register": "Jetzt kostenlos registrieren",
       "guest_cta_login": "Ich habe schon ein Konto &rarr;",
       "stay_updated": "Bleib auf dem Laufenden",
@@ -982,7 +990,9 @@ const translations = {
       "chat_send": "Senden",
       "profile_request_received": "hat dir eine Anfrage gesendet.",
       "profile_request_accept": "Annehmen",
-      "profile_request_decline": "Ablehnen"
+      "profile_request_decline": "Ablehnen",
+      "giveaway_banner_title": "Sommer-Giveaway!",
+    "giveaway_banner_text": "Gewinne einen 50€ Steam-Gutschein! Der Nutzer mit den meisten XP am 31. August gewinnt. Viel Glück!",
     }
   },
   en: {
@@ -1013,7 +1023,7 @@ const translations = {
       "feature_crew_title": "Find Your Crew",
       "feature_crew_desc": "Connect with gamers who share your taste. Compare your collections, discover mutual favorites, and become part of a growing community.",
       "guest_cta_title": "Ready for your next favorite game?",
-      "guest_cta_desc": "As a guest, you can test our AI <strong>3 times daily</strong> for free. <strong>Register now</strong> to unlock unlimited suggestions and all the features mentioned above.",
+      "guest_cta_desc": "As a guest, you can test our AI <strong>2 times daily</strong> for free. <strong>Register now</strong> to unlock unlimited suggestions and all the features mentioned above.",
       "guest_cta_register": "Register now for free",
       "guest_cta_login": "I already have an account &rarr;",
       "stay_updated": "Stay Up-to-Date",
@@ -1171,7 +1181,9 @@ const translations = {
       "chat_send": "Send",
       "profile_request_received": "sent you a friend request.",
       "profile_request_accept": "Accept",
-      "profile_request_decline": "Decline"
+      "profile_request_decline": "Decline",
+      "giveaway_banner_title": "Summer Giveaway!",
+    "giveaway_banner_text": "Win a 50€ Steam Gift Card! The user with the most XP on August 31st wins. Good luck!",
     }
   }
 };
@@ -1330,6 +1342,27 @@ function closeAuthModal() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // =======================================================
+    // ▼▼▼ NEUER CODE FÜR DEN GIVEAWAY-BANNER ▼▼▼
+    // =======================================================
+    const giveawayBanner = document.getElementById('giveaway-banner');
+    const closeGiveawayBanner = document.getElementById('close-giveaway-banner');
+
+    if (giveawayBanner && closeGiveawayBanner) {
+        // Prüfen, ob der Banner in dieser Sitzung bereits geschlossen wurde
+        if (sessionStorage.getItem('giveawayBannerClosed') !== 'true') {
+            giveawayBanner.classList.remove('hidden');
+        }
+
+        // Event Listener für den Schließen-Button
+        closeGiveawayBanner.addEventListener('click', () => {
+            giveawayBanner.classList.add('hidden');
+            // Banner für die aktuelle Sitzung als geschlossen markieren
+            sessionStorage.setItem('giveawayBannerClosed', 'true');
+        });
+    }
+    // =======================================================
+
     // UI Referenzen für Auth-Buttons, die immer da sind
     const loginBtn = document.getElementById('login-btn');
     const registerBtn = document.getElementById('register-btn');
@@ -1400,9 +1433,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logoutBtn.addEventListener('click', handleLogout);
 
-    // =======================================================
-    // ▼▼▼ NEUER CODE FÜR DIE MOBILE NAVIGATION ▼▼▼
-    // =======================================================
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const mobileMenu = document.getElementById('mobile-menu');
     const openIcon = document.getElementById('menu-open-icon');
@@ -1415,7 +1445,6 @@ document.addEventListener('DOMContentLoaded', () => {
             closeIcon.classList.toggle('hidden');
         });
 
-        // Schließt das Menü, wenn ein Link darin geklickt wird
         mobileMenu.addEventListener('click', (e) => {
             if (e.target.closest('a.nav-trigger') || e.target.closest('button')) {
                 mobileMenu.classList.add('hidden');
@@ -1424,7 +1453,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    // =======================================================
     
     const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
     if (mobileLogoutBtn) {
@@ -2919,7 +2947,7 @@ async function searchGames(tags, genres) {
     if (!user) {
         const usage = getGuestUsage();
         console.log('Prüfe Limit. Aktueller Stand:', usage.count); // <-- HIER EINFÜGEN
-        if (usage.count >= 3) {
+        if (usage.count >= 2) {
             renderGuestLimitMessage();
             return;
         }
