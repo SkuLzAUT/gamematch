@@ -40,19 +40,9 @@
         h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 800; }
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
         .hero-bg { background-image: linear-gradient(to top, var(--bg-dark) 5%, transparent 50%), linear-gradient(rgba(17, 24, 39, 0.85), rgba(17, 24, 39, 1)), url('https://images.pexels.com/photos/924824/pexels-photo-924824.jpeg?auto=compress&cs=tinysrgb&w=1920'); background-size: cover; background-position: center; }
-        /* KORRIGIERTER CODE FÜR ADSENSE-CRAWLER */
-.page-section { 
-    display: none; /* Alle Sektionen standardmäßig verstecken */
-    opacity: 0; 
-    transition: opacity 0.3s ease; 
-}
-#home, .page-section.active { 
-    display: block; /* ABER: #home UND die aktive Sektion immer anzeigen */
-    opacity: 1; 
-}
-#home.active { 
-    animation: none; 
-}
+        .page-section { display: none; opacity: 0; transition: opacity 0.3s ease; }
+        .page-section.active { display: block; opacity: 1; }
+        #home.active { animation: none; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }
         .ai-bubble-container, .user-bubble-container { max-width: 80%; animation: fadeIn 0.5s ease-in-out; }
@@ -205,7 +195,16 @@ main {
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9925570056243594"
      crossorigin="anonymous"></script>
 </head>
-<body class="bg-gray-900 text-gray-50 antialiased overflow-x-hidden">
+<body
+<noscript>
+        <h1>Willkommen bei GameMatch - Ihr KI-Spieleberater</h1>
+        <p>Finden Sie Ihr perfektes PC-Spiel mit künstlicher Intelligenz. GameMatch analysiert Ihre Stimmung, verfügbare Zeit und persönliche Vorlieben und gibt Ihnen sofort die passende Empfehlung direkt aus dem Steam Store. Schluss mit der Unentschlossenheit! Unsere KI führt ein echtes Gespräch mit Ihnen und findet zielsicher das Spiel, auf das Sie gerade wirklich Lust haben.</p>
+        <h2>Unsere Features</h2>
+        <p>Werden Sie Teil einer wachsenden Community. Jedes "gelikte" Spiel landet in Ihrem Profil. Bewerten und kommentieren Sie Ihre Sammlung und bauen Sie sich so Ihren digitalen Trophäenschrank auf. Verbinden Sie sich mit Gamern, die Ihren Geschmack teilen, vergleichen Sie Ihre Sammlungen und finden Sie neue Mitspieler.</p>
+        <h2>Aktuelle News</h2>
+        <p>Bleiben Sie auf dem Laufenden mit unseren neuesten Beiträgen über Updates, Spiel-Highlights und Community-News.</p>
+    </noscript>  
+class="bg-gray-900 text-gray-50 antialiased overflow-x-hidden">
 <div id="giveaway-banner" class="hidden bg-yellow-500 text-black p-4 text-center relative">
     <p class="font-semibold">
         <span data-i18n="giveaway_banner_title"></span>
