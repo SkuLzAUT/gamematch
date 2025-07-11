@@ -3941,19 +3941,24 @@ mobileMenu?.addEventListener('click', (e) => {
 });
 
 // Admin Tab Logik
+// Admin Tab Logik (KORRIGIERT)
 const adminTabs = document.getElementById('admin-tabs');
 if(adminTabs) {
     adminTabs.addEventListener('click', (e) => {
         const clickedButton = e.target.closest('.profile-tab-btn');
         if (!clickedButton) return;
 
+        // Alle Buttons im Admin-Tab-Bereich deaktivieren
         adminTabs.querySelectorAll('.profile-tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('#admin-tab-content-container .profile-tab-content').forEach(content => content.classList.add('hidden'));
+        // Alle Inhalts-Container im Admin-Bereich deaktivieren (durch Entfernen von 'active')
+        document.querySelectorAll('#admin-tab-content-container .profile-tab-content').forEach(content => content.classList.remove('active'));
         
+        // Den geklickten Button aktivieren
         clickedButton.classList.add('active');
+        // Den dazugehörigen Inhalts-Container aktivieren
         const targetContent = document.getElementById(clickedButton.dataset.target);
         if (targetContent) {
-            targetContent.classList.remove('hidden');
+            targetContent.classList.add('active');
         }
     });
 }
