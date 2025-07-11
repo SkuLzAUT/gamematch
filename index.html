@@ -131,16 +131,21 @@ main {
 }
 @media (max-width: 768px) {
     .hero {
-      padding: 8vh 5vw;
+      /* Vertikales Padding reduziert für bessere mobile Ansicht */
+      padding: 3rem 1.25rem; /* 3rem oben/unten, 1.25rem links/rechts */
       text-align: center;
     }
 
     .hero h1 {
-      font-size: 7vw;
+      /* Feste, lesbare Schriftgröße statt vw */
+      font-size: 2.25rem; /* 36px */
+      line-height: 2.5rem; /* Zeilenabstand für bessere Lesbarkeit */
     }
 
     .hero p {
-      font-size: 4.5vw;
+      /* Feste, lesbare Schriftgröße statt vw */
+      font-size: 1.125rem; /* 18px */
+      line-height: 1.75rem;
     }
 
     nav ul {
@@ -154,7 +159,8 @@ main {
 
     .features {
       flex-direction: column;
-      padding: 5vh 5vw;
+      /* Padding angepasst für mobile Ansicht */
+      padding: 2.5rem 1.25rem;
     }
 
     .feature {
@@ -162,10 +168,11 @@ main {
     }
 
     .footer {
-      font-size: 4vw;
+      /* Feste, lesbare Schriftgröße statt vw */
+      font-size: 0.875rem; /* 14px */
       text-align: center;
     }
-  }
+}
     </style>
 </head>
 <body class="bg-gray-900 text-gray-50 antialiased overflow-x-hidden">
