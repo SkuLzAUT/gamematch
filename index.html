@@ -3897,7 +3897,77 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- TEIL B: ALLE ANDEREN EVENT-LISTENER UND INITIALISIERUNGEN ---
     // Hier fügst du den Code aus den alten DOMContentLoaded-Blöcken ein.
-    
+    // Event Listeners für Auth Modal
+document.getElementById('login-btn')?.addEventListener('click', () => openAuthModal('login'));
+document.getElementById('register-btn')?.addEventListener('click', () => openAuthModal('register'));
+document.getElementById('close-auth-modal-btn')?.addEventListener('click', closeAuthModal);
+document.getElementById('auth-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'auth-modal') closeAuthModal();
+});
+document.getElementById('switch-to-register')?.addEventListener('click', () => openAuthModal('register'));
+document.getElementById('switch-to-login')?.addEventListener('click', () => openAuthModal('login'));
+
+// Formular-Submissions
+document.getElementById('login-form')?.addEventListener('submit', handleEmailLogin);
+document.getElementById('register-form')?.addEventListener('submit', handleEmailRegister);
+
+// Google Sign-In
+document.getElementById('google-signin-btn')?.addEventListener('click', signInWithGoogle);
+document.getElementById('google-signup-btn')?.addEventListener('click', signInWithGoogle);
+
+// Logout
+document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+document.getElementById('mobile-logout-btn')?.addEventListener('click', handleLogout);
+
+// Mobile Menu
+const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+const mobileMenu = document.getElementById('mobile-menu');
+const openIcon = document.getElementById('menu-open-icon');
+const closeIcon = document.getElementById('menu-close-icon');
+
+mobileMenuBtn?.addEventListener('click', () => {
+    mobileMenu.classList.toggle('hidden');
+    openIcon.classList.toggle('hidden');
+    closeIcon.classList.toggle('hidden');
+});
+
+// Schließe das mobile Menü, wenn ein Link geklickt wird
+mobileMenu?.addEventListener('click', (e) => {
+    if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
+        mobileMenu.classList.add('hidden');
+        openIcon.classList.remove('hidden');
+        closeIcon.classList.add('hidden');
+    }
+});
+
+// Admin Tab Logik
+const adminTabs = document.getElementById('admin-tabs');
+if(adminTabs) {
+    adminTabs.addEventListener('click', (e) => {
+        const clickedButton = e.target.closest('.profile-tab-btn');
+        if (!clickedButton) return;
+
+        adminTabs.querySelectorAll('.profile-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('#admin-tab-content-container .profile-tab-content').forEach(content => content.classList.add('hidden'));
+        
+        clickedButton.classList.add('active');
+        const targetContent = document.getElementById(clickedButton.dataset.target);
+        if (targetContent) {
+            targetContent.classList.remove('hidden');
+        }
+    });
+}
+// Blog Formular
+document.getElementById('blog-post-form')?.addEventListener('submit', handleBlogPostSubmit);
+document.getElementById('clear-blog-form')?.addEventListener('click', () => {
+    document.getElementById('blog-post-form').reset();
+    document.getElementById('blog-post-id').value = '';
+});
+
+// Öffnen des Cookie-Modals
+document.getElementById('open-cookie-settings')?.addEventListener('click', () => {
+    document.getElementById('cookie-settings-modal').classList.remove('invisible', 'opacity-0');
+});
     // Giveaway Banner
     const giveawayBanner = document.getElementById('giveaway-banner');
     const closeGiveawayBanner = document.getElementById('close-giveaway-banner');
