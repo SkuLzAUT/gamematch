@@ -40,9 +40,19 @@
         h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 800; }
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
         .hero-bg { background-image: linear-gradient(to top, var(--bg-dark) 5%, transparent 50%), linear-gradient(rgba(17, 24, 39, 0.85), rgba(17, 24, 39, 1)), url('https://images.pexels.com/photos/924824/pexels-photo-924824.jpeg?auto=compress&cs=tinysrgb&w=1920'); background-size: cover; background-position: center; }
-        .page-section { display: none; opacity: 0; transition: opacity 0.3s ease; }
-        .page-section.active { display: block; opacity: 1; }
-        #home.active { animation: none; }
+        /* KORRIGIERTER CODE FÜR ADSENSE-CRAWLER */
+.page-section { 
+    display: none; /* Alle Sektionen standardmäßig verstecken */
+    opacity: 0; 
+    transition: opacity 0.3s ease; 
+}
+#home, .page-section.active { 
+    display: block; /* ABER: #home UND die aktive Sektion immer anzeigen */
+    opacity: 1; 
+}
+#home.active { 
+    animation: none; 
+}
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }
         .ai-bubble-container, .user-bubble-container { max-width: 80%; animation: fadeIn 0.5s ease-in-out; }
