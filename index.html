@@ -553,6 +553,15 @@ main {
                             <div id="progress-bar-fill" class="bg-cyan-400 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
                         </div>
                     </div>
+                    <div id="referral-container" class="hidden mt-8 mx-auto max-w-md p-4 bg-gray-900/50 border border-cyan-700/50 rounded-lg">
+            <h4 class="font-bold text-cyan-300 text-lg">Dein Empfehlungscode</h4>
+            <p class="text-gray-300 mt-2">Teile diesen Code mit Freunden. Für jede erfolgreiche Anmeldung über deinen Code kommst du im nächsten Giveaway einen Schritt näher an den Hauptpreis!</p>
+            <div class="mt-4 flex items-center justify-center bg-gray-800 border border-gray-600 rounded-lg p-3">
+                <span id="referral-code" class="text-2xl font-mono text-white tracking-widest">LADE...</span>
+                <button id="copy-referral-code" class="ml-4 bg-cyan-600 text-white px-3 py-1 rounded-md hover:bg-cyan-500 text-sm">Kopieren</button>
+            </div>
+            <p class="text-yellow-400 mt-3 font-semibold">Anmeldungen über deinen Code: <span id="referral-count">0</span></p>
+        </div>
                     <div id="daily-challenge-container" class="hidden mt-8 mx-auto max-w-md p-4 bg-yellow-900/50 border border-yellow-700 rounded-lg">
                         <h4 data-i18n="daily_mission_title" class="font-bold text-yellow-300 text-lg"></h4>
                         <p id="daily-challenge-text" class="text-yellow-200 mt-1"></p>
@@ -819,6 +828,7 @@ main {
                 <input type="email" id="register-email" data-i18n="[placeholder]auth_placeholder_email" required class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3">
                 <input type="text" id="register-username" data-i18n="[placeholder]auth_placeholder_username" required class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3">
                 <input type="password" id="register-password" data-i18n="[placeholder]auth_placeholder_password_min" required class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3">
+                 <input type="text" id="register-referral-code" placeholder="Empfehlungscode (Optional)" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3">
                 <p id="register-error" class="text-red-400 text-sm hidden"></p>
                 <button type="submit" data-i18n="auth_create_account" class="w-full bg-cyan-500 text-gray-900 font-semibold py-3 rounded-lg hover:bg-cyan-400"></button>
             </form>
@@ -1413,10 +1423,11 @@ async function handleEmailRegister(event) {
     const email = document.getElementById('register-email').value;
     const password = document.getElementById('register-password').value;
     const username = document.getElementById('register-username').value;
+    const referralCodeInput = document.getElementById('register-referral-code').value.trim().toUpperCase(); // NEU
     const errorP = document.getElementById('register-error');
 
     if (!email || !password || !username) {
-        errorP.textContent = "Bitte fülle alle Felder aus."; // This error is temporary, so it doesn't need i18n unless you want to
+        errorP.textContent = "Bitte fülle alle Felder aus.";
         errorP.classList.remove('hidden');
         return;
     }
@@ -1425,14 +1436,34 @@ async function handleEmailRegister(event) {
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         const user = userCredential.user;
         
+        // NEU: Logik zur Verarbeitung des Empfehlungscodes
+        let referredBy = null;
+        if (referralCodeInput) {
+            const querySnapshot = await db.collection("users").where("referralCode", "==", referralCodeInput).limit(1).get();
+            if (!querySnapshot.empty) {
+                const referrerDoc = querySnapshot.docs[0];
+                referredBy = referrerDoc.id;
+                // Erhöhe den Zähler des Werbenden
+                await db.collection("users").doc(referredBy).update({
+                    referralCount: firebase.firestore.FieldValue.increment(1)
+                });
+            } else {
+                console.warn("Eingegebener Empfehlungscode existiert nicht:", referralCodeInput);
+            }
+        }
+
         await db.collection("users").doc(user.uid).set({
             email: user.email,
             username: username, 
             avatarUrl: null, 
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             xp: 0,
-            level: 1
+            level: 1,
+            referralCode: generateReferralCode(), // NEU: Code bei Erstellung zuweisen
+            referralCount: 0, // NEU: Initialen Zähler setzen
+            referredBy: referredBy // NEU: Speichern, wer geworben hat
         });
+
         alert(i18next.t('alert_register_success'));
         closeAuthModal();
     } catch (error) {
@@ -1440,6 +1471,7 @@ async function handleEmailRegister(event) {
         errorP.classList.remove('hidden');
     }
 }
+
 async function sendMessage(friendId, messageText) {
     const currentUser = auth.currentUser;
     if (!currentUser || !messageText.trim()) return;
@@ -1749,7 +1781,6 @@ async function handleEmailLogin(event) {
         errorP.classList.remove('hidden');
     }
 }
-// ERSETZE DEINE KOMPLETTE signInWithGoogle FUNKTION HIERMIT
 
 async function signInWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -1759,19 +1790,18 @@ async function signInWithGoogle() {
         const isNewUser = result.additionalUserInfo.isNewUser;
 
         if (isNewUser) {
-            // =======================================================
-            // KORREKTUR: DIESER BLOCK HAT GEFEHLT
-            // Erstellt den Nutzer-Eintrag in der Firestore-Datenbank
             await db.collection("users").doc(user.uid).set({
                 email: user.email,
-                username: user.displayName || 'Google User', // Fallback, falls kein Name vorhanden
+                username: user.displayName || 'Google User',
                 avatarUrl: user.photoURL,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 xp: 0,
                 level: 1,
-                isBanned: false // Standardwert setzen
+                isBanned: false,
+                referralCode: generateReferralCode(), // 
+                referralCount: 0, // 
+                referredBy: null // 
             });
-            // =======================================================
             
             alert(i18next.t('alert_google_register_success'));
 
@@ -3180,6 +3210,26 @@ async function displayUserProfile(userId, filter = 'all') {
         profileUsername.textContent = userData.username || 'Unbekannter Nutzer';
         profileAvatar.src = userData.avatarUrl || `https://i.pravatar.cc/150?u=${userId}`;
         
+        const referralContainer = document.getElementById('referral-container');
+        if (isOwnProfile && referralContainer) {
+            referralContainer.classList.remove('hidden');
+            const referralCodeSpan = document.getElementById('referral-code');
+            const referralCountSpan = document.getElementById('referral-count');
+            const copyButton = document.getElementById('copy-referral-code');
+
+            referralCodeSpan.textContent = userData.referralCode || "Wird generiert...";
+            referralCountSpan.textContent = userData.referralCount || 0;
+
+            copyButton.onclick = () => {
+                navigator.clipboard.writeText(userData.referralCode).then(() => {
+                    copyButton.textContent = "Kopiert!";
+                    setTimeout(() => { copyButton.textContent = "Kopieren"; }, 2000);
+                });
+            };
+        } else if (referralContainer) {
+            referralContainer.classList.add('hidden');
+        }
+
         const totalXp = userData.xp || 0;
         const currentLevel = calculateLevel(totalXp);
         
@@ -3204,7 +3254,6 @@ async function displayUserProfile(userId, filter = 'all') {
         document.getElementById('progress-next-level-xp').textContent = i18next.t('profile_xp_until_next_level', { xp: xpNeededForThisLevel, level: currentLevel + 1 });
 
         if (isOwnProfile) {
-            // KORREKTUR: Die neue Funktion wird hier aufgerufen.
             displayFriendRequests(userId); 
             displayDailyChallenge();
             displayGamePoolList(userId);
@@ -3236,7 +3285,6 @@ async function displayUserProfile(userId, filter = 'all') {
                 friendsList.innerHTML = friendsHtml;
             }
         } else {
-            // Wenn es nicht das eigene Profil ist, wird der Anfragen-Bereich sicherheitshalber versteckt.
             const friendRequestsSection = document.getElementById('friend-requests-section');
             if (friendRequestsSection) friendRequestsSection.classList.add('hidden');
             
@@ -4026,6 +4074,14 @@ document.getElementById('open-cookie-settings')?.addEventListener('click', () =>
     handleNavigation();
     window.addEventListener('hashchange', handleNavigation);
 });
+function generateReferralCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Ohne I, O, 0, 1
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
 </script>
 
 </body>
