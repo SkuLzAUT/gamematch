@@ -1358,10 +1358,10 @@ const systemPromptConversation = `DU BIST EIN GAME-SCOUT. Dein Ziel ist es, in e
 const systemPromptExtractor = `
     You are a data analyst. Your job is to extract search criteria from a conversation.
     **RULES:**
-    1.  From the user's request, identify the **1 or 2 most important genres** that describe the core gameplay (e.g., 'rpg', 'shooter', 'action', 'strategy').
-    2.  Identify all other descriptors as **tags** (e.g., 'fantasy', 'sci-fi', 'dark', 'singleplayer', 'indie', 'aaa', 'funny').
+    1.  From the user's request, identify the **ONE SINGLE MOST IMPORTANT genre** that describes the core gameplay (e.g., 'rpg', 'shooter', 'action', 'strategy'). This is the primary filter.
+    2.  Identify ALL other descriptors, including secondary genres, as **tags** (e.g., 'fantasy', 'sci-fi', 'action-adventure', 'singleplayer', 'indie', 'aaa', 'fast-paced').
     3.  Use only the exact slug names from the provided lists.
-    4.  Output ONLY a valid JSON object in the format: { "tags": "comma,separated,tags", "genres": "comma,separated,genres" }
+    4.  Output ONLY a valid JSON object in the format: { "tags": "comma,separated,tags", "genres": "THE_SINGLE_GENRE_SLUG" }
 `;
 const systemPromptFinal = `
     You are a highly precise recommendation engine. Your ONLY task is to select one single game from the JSON list of candidates provided in the user's prompt. You MUST follow these rules exactly:
