@@ -1380,6 +1380,7 @@ const systemPromptFinal = `
 
     Here is the required JSON structure: { "game": { "id": THE_UNIQUE_ID_FROM_THE_LIST, "description": "YOUR_PERSONAL_REASONING_IN_GERMAN." } }
 `;
+const systemPromptDescription = `You are a creative copywriter for the GameMatch website. Your task is to write a short, enthusiastic, 2-3 sentence recommendation for a given game, based on the user's original request. Address the user directly in German with 'Du'/'dir'. Be creative and convincing. Respond ONLY with the description text, nothing else.`;
 
 
 
@@ -2812,42 +2813,32 @@ async function handleTagExtraction(parsedJson) {
         renderErrorState(`Ich konnte leider keine Spiele für die Kriterien "${[genres, tags].filter(Boolean).join(', ')}" finden. Bitte starte eine neue Suche.`);
         return;
     }
-    
-    let finalGamesForAI = [...rawgResults];
-    const user = auth.currentUser;
-    if (user) {
-        // Dein Code zum Filtern bereits vorgeschlagener Spiele
-    }
-    
-    // Wir geben der KI jetzt eine strukturierte Liste mit ID, Titel und Tags
-    const gameCandidatesForAI = finalGamesForAI.slice(0, 20).map(game => ({
-        id: game.id,
-        title: game.name,
-        tags: game.tags.map(t => t.slug) // Wir geben die "slugs" der Tags, die sind präziser
-    }));
 
+    // ======================================================================
+    // NEUE LOGIK: WIR (DER CODE) WÄHLEN DAS SPIEL AUS!
+    // ======================================================================
+    const chosenGame = rawgResults[0]; // Wir nehmen einfach das beste Ergebnis aus unserer sauberen Liste.
+    
+    // Wir holen uns die originale Konversation für den Kontext.
     const fullConversation = chatHistory.map(entry => entry.parts[0].text).join(' ');
 
-const finalPrompt = `
-    Based on these required user criteria:
-    Genres: ${genres || 'any'}
-    Tags: ${tags || 'any'}
-
-    Select the single best game from the following JSON list of candidates.
-    Your selection's 'tags' and 'genres' MUST be the best possible match for the user's criteria.
-
-    Candidate List:
-    ${JSON.stringify(gameCandidatesForAI, null, 2)}
-`;
+    // Wir erstellen einen simplen Prompt, der die KI bittet, nur noch den Text zu schreiben.
+    const descriptionPrompt = `
+        User request: "${fullConversation}"
+        Chosen Game: "${chosenGame.name}"
+        Write the recommendation text now.
+    `;
     
-    const finalChoiceResponse = await callGeminiAPI(finalPrompt, systemPromptFinal, false);
-    
-    if (finalChoiceResponse) {
-        handleAIResponse(finalChoiceResponse, (finalJson) => showResult(finalJson, rawgResults));
+    // Wir rufen die KI mit dem neuen "Texter"-System-Prompt auf.
+    const descriptionText = await callGeminiAPI(descriptionPrompt, systemPromptDescription, false);
+
+    if (descriptionText) {
+        // Wir übergeben unser gewähltes Spiel und den von der KI geschriebenen Text an die Anzeige-Funktion.
+        showResult(chosenGame, descriptionText, rawgResults);
+    } else {
+        renderErrorState("Die KI konnte keine Beschreibung für das Spiel erstellen.");
     }
 }
-
-// NEUE FUNKTION 2: Zeigt die statischen Durchschnitts-Sterne an
 function displayStars(container, avgRating, count) {
     let starsHtml = '';
     const rating = Math.round(avgRating * 2) / 2; // Auf halbe Sterne runden
@@ -3481,41 +3472,21 @@ document.getElementById('game-detail-modal').addEventListener('click', (e) => {
         closeCommentModal();
     }
 });
-async function showResult(finalResponseJson, rawgGames) {
+async function showResult(finalGame, finalDescription, rawgGames) {
     setLoading(false);
     try {
-        // Schritt 1: Hole die Antwort der KI
-        const { id, description } = finalResponseJson.game;
+        // Die Validierung und der Fallback sind nicht mehr nötig,
+        // da wir die Wahl selbst getroffen haben.
         
-        // KORREKTUR: Schritt 2 - VALIDIERUNG
-        // Wir überprüfen, ob die von der KI vorgeschlagene ID in unserer eigenen,
-        // vorausgewählten Liste von Spielen (rawgGames) überhaupt existiert.
-        let finalGame = rawgGames.find(g => g.id === id);
-        let finalDescription = description;
-
-        // Schritt 3: PLAN B, FALLS DIE KI HALLUZINIERT
-        if (!finalGame) {
-            console.error(`KI hat eine ungültige ID zurückgegeben: ${id}. Nutze Fallback.`);
-            // Die KI hat eine ID erfunden. Wir ignorieren ihre Wahl komplett
-            // und nehmen einfach das ERSTE Spiel aus unserer bereits gut gefilterten Liste.
-            finalGame = rawgGames[0];
-            
-            // Da die Begründung der KI jetzt falsch ist, erstellen wir eine generische.
-            finalDescription = `Basierend auf deiner Suche scheint dieses Spiel gut zu passen. Es ist bekannt für seine Atmosphäre und bietet ein spannendes Erlebnis.`;
-        }
-        
-        // Ab hier läuft alles wie gewohnt mit dem `finalGame`-Objekt, das jetzt garantiert gültig ist.
-        if (!finalGame) {
-            renderErrorState("Konnte kein passendes Spiel in den Ergebnissen finden. Bitte versuche eine andere Suche.");
-            return;
-        }
-
+        // Der Rest der Funktion bleibt fast gleich...
         currentGameCandidates = rawgGames.filter(g => g.id !== finalGame.id);
         
         ui.resultContainer.querySelector('#result-img').src = finalGame.background_image;
         ui.resultContainer.querySelector('#result-title').textContent = finalGame.name;
-        ui.resultContainer.querySelector('#result-description').textContent = finalDescription;
-        
+        // KORREKTUR: Wir verwenden jetzt die direkt übergebene Beschreibung
+        ui.resultContainer.querySelector('#result-description').textContent = finalDescription.replace(/"/g, '');
+
+
         const gameLinkElement = ui.resultContainer.querySelector('#result-link');
         const suchTitel = encodeURIComponent(finalGame.name);
         gameLinkElement.href = `https://www.g2a.com/search?query=${suchTitel}&r=reflink-0a5413ec7b`;
