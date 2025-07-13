@@ -1355,8 +1355,13 @@ i18next.on('languageChanged', () => {
     
 const systemPromptConversation = `DU BIST EIN GAME-SCOUT. Dein Ziel ist es, in einem lockeren Gespräch die Wünsche des Nutzers für ein PC-Spiel zu verstehen. STELLE IMMER NUR EINE EINZIGE FRAGE PRO ANTWORT. Frage nach Genre, Stimmung, Spielstil (realistisch, Fantasy etc.) und ob der Nutzer AAA-Titel oder Indie-Spiele bevorzugt. STELLE FRAGEN, BIS DU DIR SICHER BIST, GENUG INFOS ZU HABEN (NORMALERWEISE NACH 2-3 ANTWORTEN DES NUTZERS). DEINE ALLERLETZTE ANTWORT MUSS EINE ABSCHLIESSENDE BEMERKUNG SEIN UND DARF KEINE FRAGE MEHR ENTHALTEN. ZUM BEISPIEL: "Perfekt, das reicht mir schon. Ich suche jetzt das passende Spiel für dich!". Setze NUR in diesem finalen Fall 'conversation_complete' auf true. ANTWORTE IMMER IM FOLGENDEN JSON-FORMAT: { "type": "response", "next_question": "Deine nächste Frage ODER die abschließende Bemerkung.", "conversation_complete": false }`;
 
-const systemPromptExtractor = `You are a precision data analyst. Your job is to extract relevant 'tags' and 'genres' from the conversation history, using only the provided lists. You must assign terms correctly: 'action' is a genre, 'singleplayer' is a tag. Use only the exact slug names from the lists. If a user asks for "Fantasy-Welt" and "RPG", you MUST extract both "fantasy" and "rpg". Output ONLY a valid JSON object in the format: { "tags": "comma,separated,tags", "genres": "comma,separated,genres" }`;
-
+const systemPromptExtractor = `
+    You are a precision data analyst. Your job is to extract relevant 'tags' and 'genres' from the conversation history, using only the provided lists.
+    **RULES:**
+    1.  You must assign terms correctly. Terms describing a world or core gameplay like 'action', 'shooter', 'rpg', 'fantasy', 'sci-fi' should be treated as **genres**. Other descriptors like 'singleplayer', 'atmospheric', 'dark', 'aaa', 'indie' are **tags**.
+    2.  Use only the exact slug names from the provided lists.
+    3.  If a user asks for "Fantasy" and "RPG", you MUST extract both "fantasy" and "rpg" into the genres list.
+    4.  Output ONLY a valid JSON object in the format: { "tags": "comma,separated,tags", "genres": "comma,separated,genres" }`;
 const systemPromptFinal = `
     You are a highly precise recommendation engine. Your ONLY task is to select one single game from the JSON list of candidates provided in the user's prompt. You MUST follow these rules exactly:
 
@@ -2706,50 +2711,66 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
 }
 async function searchGames(tags, genres) {
     setLoading(true);
-    console.log(`Starte diversifizierte Suche mit Tags: ${tags}, Genres: ${genres}`);
+    console.log(`Starte Suche mit Tags: ${tags}, Genres: ${genres}`);
 
     try {
-        const indieGenres = genres ? `indie,${genres}` : 'indie';
+        const hasIndie = (tags && tags.includes('indie')) || (genres && genres.includes('indie'));
+        const hasAAA = tags && tags.includes('aaa');
 
-        // KORREKTUR: Der Parameter 'ordering: -metacritic' wird hinzugefügt.
-        // Das Minuszeichen bedeutet "absteigend", also die höchste Bewertung zuerst.
-        const indiePromise = fetch('/.netlify/functions/call-rawg', {
-            method: 'POST',
-            body: JSON.stringify({
-                path: '/api/games',
-                params: { stores: 1, page_size: 20, genres: indieGenres, tags: tags, ordering: '-metacritic' }
-            })
-        }).then(res => res.json());
-
-        // KORREKTUR: Auch hier wird nach Bewertung sortiert.
-        const generalPromise = fetch('/.netlify/functions/call-rawg', {
-            method: 'POST',
-            body: JSON.stringify({
-                path: '/api/games',
-                params: { stores: 1, page_size: 20, genres: genres, tags: tags, ordering: '-metacritic' }
-            })
-        }).then(res => res.json());
-
-        const [indieResponse, generalResponse] = await Promise.all([indiePromise, generalPromise]);
-
-        const indieGames = indieResponse.results || [];
-        const generalGames = generalResponse.results || [];
-
-        console.log(`Gefunden: ${indieGames.length} Indie-Spiele, ${generalGames.length} allgemeine Spiele.`);
+        let searchPromises = [];
         
-        let combinedGames = [...indieGames, ...generalResponse.results.filter(g => !indieGames.find(ig => ig.id === g.id))];
+        const fetchParams = (g) => ({
+            path: '/api/games',
+            params: { stores: 1, page_size: 20, genres: g, tags: tags, ordering: '-metacritic' }
+        });
 
-        // Mische die Liste, um eine gute Vielfalt zu gewährleisten
-        for (let i = combinedGames.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [combinedGames[i], combinedGames[j]] = [combinedGames[j], combinedGames[i]];
+        // KORREKTUR: Intelligente Suchlogik basierend auf User-Wunsch
+        if (hasIndie && !hasAAA) {
+            console.log("Führe NUR Indie-Suche durch.");
+            const indieGenres = genres ? genres.split(',').filter(g => g !== 'indie').join(',') : '';
+            searchPromises.push(fetch('/.netlify/functions/call-rawg', {
+                method: 'POST', body: JSON.stringify(fetchParams(`indie,${indieGenres}`))
+            }).then(res => res.json()));
+        } else if (hasAAA && !hasIndie) {
+            console.log("Führe NUR allgemeine/AAA-Suche durch.");
+            searchPromises.push(fetch('/.netlify/functions/call-rawg', {
+                method: 'POST', body: JSON.stringify(fetchParams(genres))
+            }).then(res => res.json()));
+        } else {
+            // Standardfall: Diversifizierte Suche, wenn weder Indie noch AAA explizit genannt wurden
+            console.log("Führe diversifizierte Suche durch (Indie & Allgemein).");
+            const indieGenres = genres ? `indie,${genres}` : 'indie';
+            searchPromises.push(fetch('/.netlify/functions/call-rawg', {
+                method: 'POST', body: JSON.stringify(fetchParams(indieGenres))
+            }).then(res => res.json()));
+            searchPromises.push(fetch('/.netlify/functions/call-rawg', {
+                method: 'POST', body: JSON.stringify(fetchParams(genres))
+            }).then(res => res.json()));
+        }
+
+        const responses = await Promise.all(searchPromises);
+        let combinedGames = responses.flatMap(response => response.results || []);
+        let uniqueGames = Array.from(new Map(combinedGames.map(game => [game.id, game])).values());
+
+        // Client-seitige Verifizierung (unser "Türsteher")
+        if (hasIndie) {
+            const strictlyIndieGames = uniqueGames.filter(game => game.genres && game.genres.some(g => g.slug === 'indie'));
+            if (strictlyIndieGames.length > 0) {
+                console.log(`Strikte Indie-Filterung angewendet. Reduziert auf ${strictlyIndieGames.length} Spiele.`);
+                uniqueGames = strictlyIndieGames;
+            }
         }
         
-        console.log(`Kombinierte und gemischte Liste: ${combinedGames.length} einzigartige Spiele.`);
-        return combinedGames;
+        for (let i = uniqueGames.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [uniqueGames[i], uniqueGames[j]] = [uniqueGames[j], uniqueGames[i]];
+        }
+        
+        console.log(`Finale, bereinigte und gemischte Liste: ${uniqueGames.length} einzigartige Spiele.`);
+        return uniqueGames;
 
     } catch (error) {
-        console.error("Fehler bei der diversifizierten Spielesuche:", error);
+        console.error("Fehler bei der Spielesuche:", error);
         renderErrorState("Fehler bei der Spielesuche. Bitte versuche es später erneut.");
         return [];
     } finally {
