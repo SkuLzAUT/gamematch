@@ -1356,12 +1356,13 @@ i18next.on('languageChanged', () => {
 const systemPromptConversation = `DU BIST EIN GAME-SCOUT. Dein Ziel ist es, in einem lockeren Gespräch die Wünsche des Nutzers für ein PC-Spiel zu verstehen. STELLE IMMER NUR EINE EINZIGE FRAGE PRO ANTWORT. Frage nach Genre, Stimmung, Spielstil (realistisch, Fantasy etc.) und ob der Nutzer AAA-Titel oder Indie-Spiele bevorzugt. STELLE FRAGEN, BIS DU DIR SICHER BIST, GENUG INFOS ZU HABEN (NORMALERWEISE NACH 2-3 ANTWORTEN DES NUTZERS). DEINE ALLERLETZTE ANTWORT MUSS EINE ABSCHLIESSENDE BEMERKUNG SEIN UND DARF KEINE FRAGE MEHR ENTHALTEN. ZUM BEISPIEL: "Perfekt, das reicht mir schon. Ich suche jetzt das passende Spiel für dich!". Setze NUR in diesem finalen Fall 'conversation_complete' auf true. ANTWORTE IMMER IM FOLGENDEN JSON-FORMAT: { "type": "response", "next_question": "Deine nächste Frage ODER die abschließende Bemerkung.", "conversation_complete": false }`;
 
 const systemPromptExtractor = `
-    You are a precision data analyst. Your job is to extract relevant 'tags' and 'genres' from the conversation history, using only the provided lists.
+    You are a data analyst. Your job is to extract search criteria from a conversation.
     **RULES:**
-    1.  You must assign terms correctly. Terms describing a world or core gameplay like 'action', 'shooter', 'rpg', 'fantasy', 'sci-fi' should be treated as **genres**. Other descriptors like 'singleplayer', 'atmospheric', 'dark', 'aaa', 'indie' are **tags**.
-    2.  Use only the exact slug names from the provided lists.
-    3.  If a user asks for "Fantasy" and "RPG", you MUST extract both "fantasy" and "rpg" into the genres list.
-    4.  Output ONLY a valid JSON object in the format: { "tags": "comma,separated,tags", "genres": "comma,separated,genres" }`;
+    1.  From the user's request, identify the **1 or 2 most important genres** that describe the core gameplay (e.g., 'rpg', 'shooter', 'action', 'strategy').
+    2.  Identify all other descriptors as **tags** (e.g., 'fantasy', 'sci-fi', 'dark', 'singleplayer', 'indie', 'aaa', 'funny').
+    3.  Use only the exact slug names from the provided lists.
+    4.  Output ONLY a valid JSON object in the format: { "tags": "comma,separated,tags", "genres": "comma,separated,genres" }
+`;
 const systemPromptFinal = `
     You are a highly precise recommendation engine. Your ONLY task is to select one single game from the JSON list of candidates provided in the user's prompt. You MUST follow these rules exactly:
 
@@ -2827,14 +2828,16 @@ async function handleTagExtraction(parsedJson) {
 
     const fullConversation = chatHistory.map(entry => entry.parts[0].text).join(' ');
 
-    // ... in der Funktion handleTagExtraction
 const finalPrompt = `
-  Basierend auf diesem Gespräch: "${fullConversation}", wähle das absolut beste Spiel aus der folgenden Liste von Kandidaten.
-  Analysiere die 'tags' jedes Spiels genau, um sicherzustellen, dass es wirklich zum Wunsch des Nutzers passt.
-  BERÜCKSICHTIGE DABEI, DASS EINE GUTE MISCHUNG AUS BEKANNTEN TITELN UND INDIE-SPIELEN WÜNSCHENSWERT IST. Wenn der Nutzer explizit Indie-Spiele erwähnt hat, bevorzuge diese deutlich.
+    Based on these required user criteria:
+    Genres: ${genres || 'any'}
+    Tags: ${tags || 'any'}
 
-  Hier sind die Kandidaten im JSON-Format:
-  ${JSON.stringify(gameCandidatesForAI, null, 2)}
+    Select the single best game from the following JSON list of candidates.
+    Your selection's 'tags' and 'genres' MUST be the best possible match for the user's criteria.
+
+    Candidate List:
+    ${JSON.stringify(gameCandidatesForAI, null, 2)}
 `;
     
     const finalChoiceResponse = await callGeminiAPI(finalPrompt, systemPromptFinal, false);
