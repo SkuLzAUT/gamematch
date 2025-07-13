@@ -883,7 +883,19 @@ main {
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <script>
-        // GANZ AM ANFANG DEINES <SCRIPT>-BLOCKS
+function sanitizeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, function(tag) {
+        const replacements = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        };
+        return replacements[tag] || tag;
+    });
+}
 const translations = {
   de: {
     translation: {
@@ -1343,9 +1355,15 @@ i18next.on('languageChanged', () => {
     
 const systemPromptConversation = `DU BIST EIN GAME-SCOUT. Dein Ziel ist es, in einem lockeren Gespräch die Wünsche des Nutzers für ein PC-Spiel zu verstehen. STELLE IMMER NUR EINE EINZIGE FRAGE PRO ANTWORT. Frage nach Genre, Stimmung, Spielstil (realistisch, Fantasy etc.) und ob der Nutzer AAA-Titel oder Indie-Spiele bevorzugt. STELLE FRAGEN, BIS DU DIR SICHER BIST, GENUG INFOS ZU HABEN (NORMALERWEISE NACH 2-3 ANTWORTEN DES NUTZERS). DEINE ALLERLETZTE ANTWORT MUSS EINE ABSCHLIESSENDE BEMERKUNG SEIN UND DARF KEINE FRAGE MEHR ENTHALTEN. ZUM BEISPIEL: "Perfekt, das reicht mir schon. Ich suche jetzt das passende Spiel für dich!". Setze NUR in diesem finalen Fall 'conversation_complete' auf true. ANTWORTE IMMER IM FOLGENDEN JSON-FORMAT: { "type": "response", "next_question": "Deine nächste Frage ODER die abschließende Bemerkung.", "conversation_complete": false }`;
 
-const systemPromptExtractor = `DU BIST EIN PRÄZISER DATEN-ANALYST. DEINE AUFGABE: Extrahiere passende 'tags' und 'genres' aus dem Gesprächsverlauf, basierend auf den zwei bereitgestellten Listen. WEISE BEGRIFFE KORREKT ZU: 'action' ist ein Genre, 'singleplayer' ist ein Tag. NUTZE AUSSCHLIESSLICH die exakten Slug-Namen aus den Listen. ANTWORTE IMMER IM FOLGENDEN JSON-FORMAT: { "tags": "passende, komma-getrennte-tags-aus-der-TAG-liste", "genres": "passende, komma-getrennte-genres-aus-der-GENRE-liste" } WICHTIG: KEIN TEXT AUSSERHALB DES JSON!`;
+const systemPromptExtractor = `You are a precision data analyst. Your job is to extract relevant 'tags' and 'genres' from the conversation history, using only the provided lists. You must assign terms correctly: 'action' is a genre, 'singleplayer' is a tag. Use only the exact slug names from the lists. If a user asks for "Fantasy-Welt" and "RPG", you MUST extract both "fantasy" and "rpg". Output ONLY a valid JSON object in the format: { "tags": "comma,separated,tags", "genres": "comma,separated,genres" }`;
 
-const systemPromptFinal = `DU BIST EIN GAME-KURATOR. WÄHLE DAS BESTE SPIEL AUS DER LISTE, basierend auf dem ursprünglichen Gespräch. Analysiere die Tags und die Beschreibung jedes Spiels genau, um sicherzustellen, dass es wirklich zum Wunsch des Nutzers passt. SEHR WICHTIG: DEINE BEGRÜNDUNG ('description') MUSS IMMER AUF DEUTSCH SEIN! ANTWORTE IMMER IM FOLGENDEN JSON-FORMAT: { "game": { "id": EINDEUTIGE_ZAHLEN_ID_DES_SPIELS, "description": "DEINE PERSÖNLICHE BEGRÜNDUNG AUF DEUTSCH." } } WICHTIG: KEIN TEXT AUSSERHALB DES JSON!`;
+const systemPromptFinal = `You are an expert Game Curator. Select the single best game from the candidate list based on the original conversation.
+**CRITICAL RULES:**
+1.  **STRICT MATCHING:** The selected game's tags MUST perfectly match the user's core request. If the user asked for a 'Shooter', you absolutely CANNOT suggest a 'Platformer' like Limbo. If they asked for a 'Fantasy RPG', the game MUST be both. Analyze the 'tags' array of each candidate to ensure this.
+2.  **GERMAN REASON:** Your 'description' in the JSON output must be in GERMAN, warm, and speak to the user directly ('Du'/'dir').
+3.  **JSON ONLY:** Your entire response must be the JSON object and nothing more.
+
+Here is the required JSON structure: { "game": { "id": UNIQUE_GAME_ID_AS_NUMBER, "description": "DEINE PERSÖNLICHE BEGRÜNDUNG AUF DEUTSCH." } }`;
 
 
 
@@ -1604,9 +1622,6 @@ function renderMessages(messages) {
     // Scrolle immer zur neuesten Nachricht
     chatLog.scrollTop = chatLog.scrollHeight;
 }
-/**
- * Lädt die "gelikten" Spiele des Nutzers für den Game Pool.
- */
 async function displayGamePoolList(userId) {
     const listContainer = document.getElementById('mitspieler-gamelist');
     if (!listContainer) return;
@@ -1626,11 +1641,13 @@ async function displayGamePoolList(userId) {
         let gamesHtml = '';
         querySnapshot.forEach(doc => {
             const game = doc.data();
+            // KORREKTUR: Titel wird desinfiziert
+            const safeTitle = sanitizeHTML(game.title);
             gamesHtml += `
                 <div onclick="showPlayersForGame('${game.rawgId}', '${game.title.replace(/'/g, "\\'")}')" 
                      class="bg-gray-900 p-3 rounded-lg flex items-center gap-4 cursor-pointer hover:bg-gray-800 transition-colors">
                     <img src="${game.imageUrl}" class="w-16 h-10 object-cover rounded">
-                    <span class="font-semibold text-white">${game.title}</span>
+                    <span class="font-semibold text-white">${safeTitle}</span>
                 </div>
             `;
         });
@@ -1640,10 +1657,6 @@ async function displayGamePoolList(userId) {
         listContainer.innerHTML = `<p class="text-red-400">${i18next.t('profile_lfg_error_loading')}</p>`;
     }
 }
-
-/**
- * Fragt die 'gameLikes'-Sammlung ab und zeigt die Spieler an.
- */
 async function showPlayersForGame(gameId, gameTitle) {
     document.getElementById('mitspieler-gamelist-view').classList.add('hidden');
     const resultsView = document.getElementById('mitspieler-results-view');
@@ -1666,13 +1679,15 @@ async function showPlayersForGame(gameId, gameTitle) {
         let playerCount = 0;
 
         for (const userId in usersMap) {
-            if (currentUser.uid === userId) continue;
+            if (currentUser && currentUser.uid === userId) continue;
             const userData = usersMap[userId];
             playerCount++;
+            // KORREKTUR: Nutzername wird desinfiziert
+            const safeUsername = sanitizeHTML(userData.username);
             playersHtml += `
                 <a href="#profile?user=${userId}" class="nav-trigger bg-gray-900 p-3 rounded-lg flex items-center gap-4 hover:bg-gray-800 transition-colors">
                     <img src="${userData.avatarUrl || `https://i.pravatar.cc/150?u=${userId}`}" class="w-12 h-12 object-cover rounded-full">
-                    <span class="font-semibold text-white">${userData.username}</span>
+                    <span class="font-semibold text-white">${safeUsername}</span>
                 </a>
             `;
         }
@@ -1688,9 +1703,6 @@ async function showPlayersForGame(gameId, gameTitle) {
         resultsList.innerHTML = `<p class="text-red-400">${i18next.t('profile_lfg_error_player_list')}</p>`;
     }
 }
-/**
- * Lädt alle Nutzer und zeigt sie in der Admin-Tabelle an.
- */
 async function displayUserManagement() {
     const userListBody = document.getElementById('admin-user-list-body');
     const emptyMessage = document.getElementById('admin-user-list-empty');
@@ -1713,42 +1725,28 @@ async function displayUserManagement() {
             const userData = doc.data();
             const userId = doc.id;
             const currentUser = auth.currentUser;
-            
             const registeredAt = userData.createdAt?.toDate().toLocaleDateString('de-DE') || 'Unbekannt';
-
-            // Logik für die Aktions-Buttons
             let actionButtons = `<a href="#profile?user=${userId}" class="nav-trigger font-medium text-cyan-400 hover:underline">Profil</a>`;
-
-            if (currentUser.uid !== userId) {
-                if (userData.isBanned) {
-                    actionButtons += `<button onclick="toggleUserBan('${userId}', true)" class="ml-4 font-medium text-green-400 hover:underline">Entsperren</button>`;
-                } else {
-                    actionButtons += `<button onclick="toggleUserBan('${userId}', false)" class="ml-4 font-medium text-red-500 hover:underline">Sperren</button>`;
-                }
-
-                if (userData.isAdmin) {
-                    actionButtons += `<button onclick="toggleAdminStatus('${userId}', true)" class="ml-4 font-medium text-red-500 hover:underline">Admin entfernen</button>`;
-                } else {
-                    actionButtons += `<button onclick="toggleAdminStatus('${userId}', false)" class="ml-4 font-medium text-yellow-400 hover:underline">Zum Admin machen</button>`;
-                }
+            if (currentUser && currentUser.uid !== userId) {
+                actionButtons += userData.isBanned ? `<button onclick="toggleUserBan('${userId}', true)" class="ml-4 font-medium text-green-400 hover:underline">Entsperren</button>` : `<button onclick="toggleUserBan('${userId}', false)" class="ml-4 font-medium text-red-500 hover:underline">Sperren</button>`;
+                actionButtons += userData.isAdmin ? `<button onclick="toggleAdminStatus('${userId}', true)" class="ml-4 font-medium text-red-500 hover:underline">Admin entfernen</button>` : `<button onclick="toggleAdminStatus('${userId}', false)" class="ml-4 font-medium text-yellow-400 hover:underline">Zum Admin machen</button>`;
             }
 
-            // HTML für die Tabellenzeile
+            // KORREKTUR: Nutzername und E-Mail werden desinfiziert
+            const safeUsername = sanitizeHTML(userData.username || '');
+            const safeEmail = sanitizeHTML(userData.email);
+            
             usersHtml += `
                 <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700/50 ${userData.isBanned ? 'opacity-50' : ''}">
-                    <td class="px-6 py-4 font-medium text-white">${userData.username || ''} ${userData.isAdmin ? '<span class="text-xs text-yellow-400 ml-1">(Admin)</span>' : ''}</td>
-                    <td class="px-6 py-4">${userData.email}</td>
+                    <td class="px-6 py-4 font-medium text-white">${safeUsername} ${userData.isAdmin ? '<span class="text-xs text-yellow-400 ml-1">(Admin)</span>' : ''}</td>
+                    <td class="px-6 py-4">${safeEmail}</td>
                     <td class="px-6 py-4">Lvl ${userData.level || 1} / ${userData.xp || 0} XP</td>
                     <td class="px-6 py-4">${registeredAt}</td>
-                    <td class="px-6 py-4">
-                        ${actionButtons}
-                    </td>
+                    <td class="px-6 py-4">${actionButtons}</td>
                 </tr>
             `;
         });
-
         userListBody.innerHTML = usersHtml;
-
     } catch (error) {
         console.error("Fehler beim Laden der Nutzer für das Admin-Panel:", error);
         userListBody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-red-400">Fehler beim Laden der Nutzer.</td></tr>';
@@ -1983,41 +1981,39 @@ async function loadSavedGames(userId, filter, isInitialLoad = false) {
     }
 }
 async function loadCommentsForGame(gameId, containerId) {
-  const container = document.getElementById(containerId); // <-- Geänderte Zeile
-  if (!container) return;
+    const container = document.getElementById(containerId);
+    if (!container) return;
 
-  try {
-    const querySnapshot = await db.collection("comments").doc(gameId.toString()).collection("entries").orderBy("timestamp", "desc").limit(5).get();
+    try {
+        const querySnapshot = await db.collection("comments").doc(gameId.toString()).collection("entries").orderBy("timestamp", "desc").limit(5).get();
+        if (querySnapshot.empty) {
+            container.innerHTML = `<p class="text-xs text-gray-500 italic px-2">Noch keine Kommentare.</p>`;
+            return;
+        }
 
-    // ...
-    if (querySnapshot.empty) {
-      container.innerHTML = `<p class="text-xs text-gray-500 italic px-2">Noch keine Kommentare.</p>`;
-      return;
+        let html = '';
+        querySnapshot.forEach(doc => {
+            const entry = doc.data();
+            const avatarUrl = `https://i.pravatar.cc/40?u=${encodeURIComponent(entry.username)}`;
+            // KORREKTUR: Name und Kommentar werden desinfiziert
+            const safeUsername = sanitizeHTML(entry.username);
+            const safeComment = sanitizeHTML(entry.comment);
+            html += `
+                <div class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-gray-800/50">
+                    <img class="w-8 h-8 rounded-full" src="${avatarUrl}" alt="${safeUsername} avatar">
+                    <div class="flex flex-col w-full">
+                        <p class="text-sm font-semibold text-white">${safeUsername}</p>
+                        <p class="text-sm text-gray-300 break-words">${safeComment}</p>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    } catch (error) {
+        console.error("Fehler beim Laden der Kommentare:", error);
+        container.innerHTML = `<p class="text-red-400">Fehler beim Laden der Kommentare.</p>`;
     }
-
-    let html = '';
-    querySnapshot.forEach(doc => {
-      const entry = doc.data();
-      const avatarUrl = `https://i.pravatar.cc/40?u=${encodeURIComponent(entry.username)}`;
-      
-      html += `
-        <div class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-gray-800/50">
-            <img class="w-8 h-8 rounded-full" src="${avatarUrl}" alt="${entry.username} avatar">
-            <div class="flex flex-col w-full">
-                <p class="text-sm font-semibold text-white">${entry.username}</p>
-                <p class="text-sm text-gray-300 break-words">${entry.comment}</p>
-            </div>
-        </div>
-      `;
-    });
-    container.innerHTML = html;
-
-  } catch (error) {
-    console.error("Fehler beim Laden der Kommentare:", error);
-    container.innerHTML = `<p class="text-red-400">Fehler beim Laden der Kommentare.</p>`;
-  }
 }
-
 async function loadUserList() {
     const container = document.getElementById('user-list');
     const emptyMsg = document.getElementById('user-list-empty');
@@ -2073,10 +2069,13 @@ async function loadUserList() {
                 }
             }
 
+            // KORREKTUR HIER: 'user.username' wird desinfiziert, bevor es im HTML verwendet wird.
+            const safeUsername = sanitizeHTML(user.username || 'Nutzer');
+
             return `
                 <a href="#profile?user=${doc.id}" class="nav-trigger block bg-gray-800 border border-gray-700 rounded-xl p-4 shadow-lg flex flex-col items-center text-center transition-transform transform hover:scale-105 hover:border-cyan-500">
-                    <img src="${user.avatarUrl || 'https://i.pravatar.cc/150?u=' + doc.id}" class="w-20 h-20 rounded-full mb-4 border-2 border-cyan-400 object-cover" alt="${user.username}">
-                    <h3 class="text-xl font-bold text-white mb-1">${user.username || 'Nutzer'}</h3>
+                    <img src="${user.avatarUrl || 'https://i.pravatar.cc/150?u=' + doc.id}" class="w-20 h-20 rounded-full mb-4 border-2 border-cyan-400 object-cover" alt="${safeUsername}">
+                    <h3 class="text-xl font-bold text-white mb-1">${safeUsername}</h3>
                     <p class="text-yellow-400 text-sm mb-4">Level ${user.level || 1} – ${user.xp || 0} XP</p>
                     <div onclick="event.stopPropagation(); event.preventDefault();" class="h-8">${buttonHtml}</div>
                 </a>
@@ -2179,7 +2178,6 @@ async function displayLeaderboard() {
 
     try {
         const querySnapshot = await db.collection("users").orderBy("xp", "desc").limit(10).get();
-        
         if (querySnapshot.empty) {
             leaderboardList.innerHTML = `<p class="text-gray-500">${i18next.t('leaderboard_no_players')}</p>`;
             return;
@@ -2190,11 +2188,13 @@ async function displayLeaderboard() {
 
         querySnapshot.forEach((doc) => { 
             const user = doc.data();
+            // KORREKTUR: Name oder E-Mail wird desinfiziert
+            const displayName = sanitizeHTML(user.username || user.email);
             leaderboardHtml += `
                 <div class="flex items-center justify-between bg-gray-900 p-4 rounded-lg border border-gray-700">
                     <div class="flex items-center gap-4">
                         <span class="font-bold text-lg text-yellow-400">${rank}.</span>
-                        <span class="font-semibold text-white">${user.username || user.email}</span>
+                        <span class="font-semibold text-white">${displayName}</span>
                     </div>
                     <span class="font-bold text-lg text-yellow-400">${user.xp} XP</span>
                 </div>
@@ -2202,7 +2202,6 @@ async function displayLeaderboard() {
             rank++;
         });
         leaderboardList.innerHTML = leaderboardHtml;
-
     } catch (error) {
         console.error("Fehler beim Laden der Rangliste:", error);
         leaderboardList.innerHTML = `<p class="text-red-400">${i18next.t('leaderboard_error')}</p>`;
@@ -2527,7 +2526,7 @@ function handleResponse(userText) {
     console.log("handleResponse aufgerufen mit:", userText);
     const userContainer = document.createElement('div');
     userContainer.className = 'user-bubble-container self-end w-full flex flex-col items-end';
-    userContainer.innerHTML = `<span class="text-xs text-gray-400 mr-3 mb-1">${i18next.t('matchmaker_user_bubble')}</span><div class="bg-blue-600 rounded-lg rounded-br-none px-4 py-3">${userText}</div>`;
+    userContainer.innerHTML = `<span class="text-xs text-gray-400 mr-3 mb-1">${i18next.t('matchmaker_user_bubble')}</span><div class="bg-blue-600 rounded-lg rounded-br-none px-4 py-3">${sanitizeHTML(userText)}</div>`;
     ui.chatLog.appendChild(userContainer);
     ui.chatLog.scrollTop = ui.chatLog.scrollHeight;
     lastUserInput = userText;
@@ -2540,7 +2539,8 @@ function handleResponse(userText) {
 function renderInteraction({ text, inputType, placeholder, isComplete = false }) {
     const aiContainer = document.createElement('div');
     aiContainer.className = 'ai-bubble-container self-start w-full flex flex-col items-start';
-    aiContainer.innerHTML = `<span class="text-xs text-cyan-400 ml-3 mb-1">${i18next.t('matchmaker_ai_bubble')}</span><div class="bg-gray-700 rounded-lg rounded-bl-none px-4 py-3">${text.replace(/\n/g, '<br>')}</div>`;
+    const sanitizedText = sanitizeHTML(text);
+    aiContainer.innerHTML = `<span class="text-xs text-cyan-400 ml-3 mb-1">${i18next.t('matchmaker_ai_bubble')}</span><div class="bg-gray-700 rounded-lg rounded-bl-none px-4 py-3">${sanitizedText.replace(/\n/g, '<br>')}</div>`;
     ui.chatLog.appendChild(aiContainer);
     ui.chatLog.scrollTop = ui.chatLog.scrollHeight;
     ui.userInputArea.innerHTML = '';
@@ -3721,9 +3721,6 @@ async function toggleAdminStatus(userId, isCurrentlyAdmin) {
         alert("Aktion fehlgeschlagen.");
     }
 }
-/**
- * Lädt und zeigt alle Blog-Posts auf der öffentlichen News-Seite an.
- */
 async function displayNews() {
     const postListContainer = document.getElementById('news-post-list');
     if (!postListContainer) return;
@@ -3740,13 +3737,18 @@ async function displayNews() {
         let postsHtml = '';
         querySnapshot.forEach(doc => {
             const post = doc.data();
-            // Hier passen wir das Datumsformat an die Sprache an
             const postDate = post.createdAt?.toDate().toLocaleDateString(i18next.language, { year: 'numeric', month: 'long', day: 'numeric' }) || '';
-            const contentHtml = post.content.replace(/\n/g, '<br>');
+
+            // KORREKTUR 1: Desinfiziere den Titel des Beitrags.
+            const safeTitle = sanitizeHTML(post.title);
+
+            // KORREKTUR 2: Desinfiziere den Inhalt, BEVOR Zeilenumbrüche hinzugefügt werden.
+            const sanitizedContent = sanitizeHTML(post.content);
+            const contentHtml = sanitizedContent.replace(/\n/g, '<br>'); // Erst jetzt sicher die Zeilenumbrüche umwandeln.
 
             postsHtml += `
                 <article class="bg-gray-800/50 border border-gray-700 rounded-xl p-8">
-                    <h3 class="text-3xl font-bold text-cyan-400 mb-2">${post.title}</h3>
+                    <h3 class="text-3xl font-bold text-cyan-400 mb-2">${safeTitle}</h3>
                     <p class="text-sm text-gray-400 mb-6">${i18next.t('news_published_on')} ${postDate}</p>
                     <div class="prose prose-invert max-w-none text-gray-300">${contentHtml}</div>
                 </article>
@@ -3758,10 +3760,6 @@ async function displayNews() {
         postListContainer.innerHTML = `<p class="text-center text-red-400">${i18next.t('news_error')}</p>`;
     }
 }
-
-/**
- * Lädt alle Blog-Posts in die Verwaltungsliste im Admin-Panel.
- */
 async function displayBlogManagement() {
     const postListContainer = document.getElementById('admin-blog-post-list');
     if (!postListContainer) return;
@@ -3852,16 +3850,12 @@ async function handleBlogPostSubmit(event) {
         alert("Beitrag konnte nicht gespeichert werden.");
     }
 }
-/**
- * Lädt die 2 neuesten Blog-Posts und zeigt sie auf der Startseite an.
- */
 async function displayLatestNewsOnHome() {
     const container = document.getElementById('home-news-list');
     if (!container) return;
 
     try {
         const querySnapshot = await db.collection("blogPosts").orderBy("createdAt", "desc").limit(2).get();
-        
         if (querySnapshot.empty) {
             container.innerHTML = '<p class="text-center text-gray-500 lg:col-span-2">Es gibt noch keine Beiträge.</p>';
             return;
@@ -3872,8 +3866,9 @@ async function displayLatestNewsOnHome() {
             const post = doc.data();
             const postDate = post.createdAt?.toDate().toLocaleDateString('de-DE', { day: 'numeric', month: 'long' }) || '';
             
-            // Kürzt den Inhalt auf ca. 120 Zeichen für den Teaser
-            const teaserText = post.content.substring(0, 120) + '...';
+            // KORREKTUR: Titel und Teaser werden desinfiziert
+            const safeTitle = sanitizeHTML(post.title);
+            const safeTeaser = sanitizeHTML(post.content.substring(0, 120) + '...');
 
             postsHtml += `
                 <article class="flex flex-col items-start justify-between bg-gray-800/50 p-6 rounded-2xl ring-1 ring-white/10 hover:ring-cyan-400/50 transition-all">
@@ -3885,24 +3880,21 @@ async function displayLatestNewsOnHome() {
                             <h3 class="mt-3 text-lg font-semibold leading-6 text-white group-hover:text-cyan-400">
                                 <a href="#news" class="nav-trigger">
                                     <span class="absolute inset-0"></span>
-                                    ${post.title}
+                                    ${safeTitle}
                                 </a>
                             </h3>
-                            <p class="mt-4 line-clamp-3 text-sm leading-6 text-gray-300">${teaserText}</p>
+                            <p class="mt-4 line-clamp-3 text-sm leading-6 text-gray-300">${safeTeaser}</p>
                         </div>
                     </div>
                 </article>
             `;
         });
         container.innerHTML = postsHtml;
-
     } catch (error) {
         console.error("Fehler beim Laden der News für die Startseite:", error);
         container.innerHTML = '<p class="text-red-400 lg:col-span-2">Beiträge konnten nicht geladen werden.</p>';
     }
 }
-// GANZ AM ENDE DEINES SCRIPT-BLOCKS EINFÜGEN
-
 document.addEventListener('DOMContentLoaded', () => {
     // --- TEIL A: DER AUTH-LISTENER ---
     // Er muss hier rein, damit er erst startet, wenn die Seite bereit ist.
