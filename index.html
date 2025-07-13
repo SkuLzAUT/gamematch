@@ -3448,9 +3448,6 @@ async function setupRatingUIForModal(gameId, isOwnProfile) {
         createInteractiveStars(userContainer, gameId, rating);
     }
 }
-
-// FÜGE DIE LISTENER ZUM SCHLIESSEN DES MODALS HINZU
-// Ein guter Platz ist im zentralen 'DOMContentLoaded' Event Listener
 document.getElementById('close-comment-modal').addEventListener('click', closeCommentModal);
 document.getElementById('game-detail-modal').addEventListener('click', (e) => {
     if (e.target.id === 'game-detail-modal') {
@@ -3460,28 +3457,40 @@ document.getElementById('game-detail-modal').addEventListener('click', (e) => {
 async function showResult(finalResponseJson, rawgGames) {
     setLoading(false);
     try {
-        // Wir holen uns jetzt die ID direkt von der KI
+        // Schritt 1: Hole die Antwort der KI
         const { id, description } = finalResponseJson.game;
         
-        // Finde das Spiel anhand der exakten ID. Das ist absolut zuverlässig.
-        const resultGame = rawgGames.find(g => g.id === id);
+        // KORREKTUR: Schritt 2 - VALIDIERUNG
+        // Wir überprüfen, ob die von der KI vorgeschlagene ID in unserer eigenen,
+        // vorausgewählten Liste von Spielen (rawgGames) überhaupt existiert.
+        let finalGame = rawgGames.find(g => g.id === id);
+        let finalDescription = description;
 
-        if (!resultGame) {
-            // Dieser Fall sollte nur eintreten, wenn die KI eine ID zurückgibt, die nicht in der Liste war.
-            console.error(`KI hat eine ungültige ID zurückgegeben: ${id}`);
-            renderErrorState("Ein interner Fehler ist aufgetreten. Bitte starte eine neue Suche.");
+        // Schritt 3: PLAN B, FALLS DIE KI HALLUZINIERT
+        if (!finalGame) {
+            console.error(`KI hat eine ungültige ID zurückgegeben: ${id}. Nutze Fallback.`);
+            // Die KI hat eine ID erfunden. Wir ignorieren ihre Wahl komplett
+            // und nehmen einfach das ERSTE Spiel aus unserer bereits gut gefilterten Liste.
+            finalGame = rawgGames[0];
+            
+            // Da die Begründung der KI jetzt falsch ist, erstellen wir eine generische.
+            finalDescription = `Basierend auf deiner Suche scheint dieses Spiel gut zu passen. Es ist bekannt für seine Atmosphäre und bietet ein spannendes Erlebnis.`;
+        }
+        
+        // Ab hier läuft alles wie gewohnt mit dem `finalGame`-Objekt, das jetzt garantiert gültig ist.
+        if (!finalGame) {
+            renderErrorState("Konnte kein passendes Spiel in den Ergebnissen finden. Bitte versuche eine andere Suche.");
             return;
         }
 
-        currentGameCandidates = rawgGames.filter(g => g.id !== resultGame.id);
+        currentGameCandidates = rawgGames.filter(g => g.id !== finalGame.id);
         
-        ui.resultContainer.querySelector('#result-img').src = resultGame.background_image;
-        ui.resultContainer.querySelector('#result-title').textContent = resultGame.name;
-        ui.resultContainer.querySelector('#result-description').textContent = description;
+        ui.resultContainer.querySelector('#result-img').src = finalGame.background_image;
+        ui.resultContainer.querySelector('#result-title').textContent = finalGame.name;
+        ui.resultContainer.querySelector('#result-description').textContent = finalDescription;
         
         const gameLinkElement = ui.resultContainer.querySelector('#result-link');
-        
-        const suchTitel = encodeURIComponent(resultGame.name);
+        const suchTitel = encodeURIComponent(finalGame.name);
         gameLinkElement.href = `https://www.g2a.com/search?query=${suchTitel}&r=reflink-0a5413ec7b`;
         gameLinkElement.textContent = i18next.t('matchmaker_find_on_g2a');
         gameLinkElement.target = "_blank";
@@ -3497,8 +3506,8 @@ async function showResult(finalResponseJson, rawgGames) {
         `;
         ui.resultContainer.appendChild(actionContainer);
         
-        document.getElementById('like-btn').onclick = () => handleLikeGame(resultGame, description);
-        document.getElementById('dislike-btn').onclick = () => handleDislikeGame(resultGame, description);
+        document.getElementById('like-btn').onclick = () => handleLikeGame(finalGame, finalDescription);
+        document.getElementById('dislike-btn').onclick = () => handleDislikeGame(finalGame, finalDescription);
 
         ui.chatWindow.style.display = 'none';
         ui.resultContainer.classList.remove('hidden');
