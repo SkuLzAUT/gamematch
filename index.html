@@ -256,6 +256,9 @@ main {
 
 <div id="mobile-menu" class="hidden fixed inset-0 bg-gray-900/95 backdrop-blur-sm z-40 flex flex-col items-center justify-center transition-opacity duration-300">
     <div class="space-y-4 text-center">
+        <button id="mobile-login-btn" data-i18n="nav_login" class="block text-2xl text-gray-300 hover:text-cyan-400"></button>
+        <button id="mobile-register-btn" data-i18n="nav_register" class="block text-2xl text-cyan-400 font-semibold"></button>
+        <hr class="border-gray-700 w-1/2 mx-auto" id="mobile-menu-divider">
         <a href="#matchmaker" data-i18n="nav_find_game" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
         <a href="#news" data-i18n="nav_news" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
         <a href="#search-users" id="mobile-search-users-link" data-i18n="nav_community" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
@@ -3908,61 +3911,77 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // UI Elemente, die vom Login-Status abhängen
         const authElements = {
-            loginBtn: document.getElementById('login-btn'),
-            registerBtn: document.getElementById('register-btn'),
-            logoutBtn: document.getElementById('logout-btn'),
-            profileLink: document.getElementById('profile-link'),
-            searchUsersLink: document.getElementById('search-users-link'),
-            leaderboardLink: document.getElementById('leaderboard-link'),
-            unreadBadge: document.getElementById('unread-messages-badge'),
-            adminLink: document.getElementById('admin-link'),
-            mobileLeaderboardLink: document.getElementById('mobile-leaderboard-link'),
-            mobileSearchUsersLink: document.getElementById('mobile-search-users-link'),
-            mobileProfileLink: document.getElementById('mobile-profile-link'),
-            mobileAdminLink: document.getElementById('mobile-admin-link'),
-            mobileLogoutBtn: document.getElementById('mobile-logout-btn')
-        };
+        loginBtn: document.getElementById('login-btn'),
+        registerBtn: document.getElementById('register-btn'),
+        logoutBtn: document.getElementById('logout-btn'),
+        profileLink: document.getElementById('profile-link'),
+        searchUsersLink: document.getElementById('search-users-link'),
+        leaderboardLink: document.getElementById('leaderboard-link'),
+        unreadBadge: document.getElementById('unread-messages-badge'),
+        adminLink: document.getElementById('admin-link'),
+        
+        // Mobile Desktop-Elemente
+        mobileLeaderboardLink: document.getElementById('mobile-leaderboard-link'),
+        mobileSearchUsersLink: document.getElementById('mobile-search-users-link'),
+        mobileProfileLink: document.getElementById('mobile-profile-link'),
+        mobileAdminLink: document.getElementById('mobile-admin-link'),
+        mobileLogoutBtn: document.getElementById('mobile-logout-btn'),
+        
+        // NEU: Login/Register-Buttons für Mobilgeräte
+        mobileLoginBtn: document.getElementById('mobile-login-btn'),
+        mobileRegisterBtn: document.getElementById('mobile-register-btn'),
+        mobileMenuDivider: document.getElementById('mobile-menu-divider')
+    };
 
-        // UI Logik hier bündeln
-        if (authElements.loginBtn) authElements.loginBtn.classList.toggle('hidden', isLoggedIn);
-        if (authElements.registerBtn) authElements.registerBtn.classList.toggle('hidden', isLoggedIn);
-        if (authElements.logoutBtn) authElements.logoutBtn.classList.toggle('hidden', !isLoggedIn);
-        if (authElements.profileLink) authElements.profileLink.classList.toggle('hidden', !isLoggedIn);
-        if (authElements.searchUsersLink) authElements.searchUsersLink.classList.toggle('hidden', !isLoggedIn);
-        if (authElements.leaderboardLink) authElements.leaderboardLink.classList.toggle('hidden', !isLoggedIn);
-        if (authElements.adminLink) authElements.adminLink.classList.add('hidden');
-        if (authElements.mobileLeaderboardLink) authElements.mobileLeaderboardLink.style.display = isLoggedIn ? 'block' : 'none';
-        if (authElements.mobileSearchUsersLink) authElements.mobileSearchUsersLink.style.display = isLoggedIn ? 'block' : 'none';
-        if (authElements.mobileProfileLink) authElements.mobileProfileLink.style.display = isLoggedIn ? 'block' : 'none';
-        if (authElements.mobileLogoutBtn) authElements.mobileLogoutBtn.style.display = isLoggedIn ? 'block' : 'none';
-        if (authElements.mobileAdminLink) authElements.mobileAdminLink.style.display = 'none';
+    // UI Logik für ALLE Elemente hier bündeln
+    // Desktop
+    if (authElements.loginBtn) authElements.loginBtn.classList.toggle('hidden', isLoggedIn);
+    if (authElements.registerBtn) authElements.registerBtn.classList.toggle('hidden', isLoggedIn);
+    if (authElements.logoutBtn) authElements.logoutBtn.classList.toggle('hidden', !isLoggedIn);
+    if (authElements.profileLink) authElements.profileLink.classList.toggle('hidden', !isLoggedIn);
+    if (authElements.searchUsersLink) authElements.searchUsersLink.classList.toggle('hidden', !isLoggedIn);
+    if (authElements.leaderboardLink) authElements.leaderboardLink.classList.toggle('hidden', !isLoggedIn);
+    if (authElements.adminLink) authElements.adminLink.classList.add('hidden'); // Admin wird später bei Bedarf eingeblendet
 
-        if (isLoggedIn) {
-            unsubscribeFromUserDoc = db.collection('users').doc(user.uid).onSnapshot(doc => {
-                 if (doc.exists) {
-                    const userData = doc.data();
-                    const totalUnreadMessages = userData.totalUnreadMessages || 0;
-                    const pendingRequests = userData.pendingFriendRequests || 0;
-                    const totalNotifications = totalUnreadMessages + pendingRequests;
+    // Mobile
+    if (authElements.mobileLoginBtn) authElements.mobileLoginBtn.style.display = isLoggedIn ? 'none' : 'block';
+    if (authElements.mobileRegisterBtn) authElements.mobileRegisterBtn.style.display = isLoggedIn ? 'none' : 'block';
+    if (authElements.mobileMenuDivider) authElements.mobileMenuDivider.style.display = isLoggedIn ? 'none' : 'block';
 
-                    if (totalNotifications > 0 && authElements.unreadBadge) {
-                        authElements.unreadBadge.textContent = totalNotifications > 9 ? '9+' : totalNotifications;
-                        authElements.unreadBadge.classList.remove('hidden');
-                    } else if(authElements.unreadBadge) {
-                        authElements.unreadBadge.classList.add('hidden');
-                    }
+    if (authElements.mobileLeaderboardLink) authElements.mobileLeaderboardLink.style.display = isLoggedIn ? 'block' : 'none';
+    if (authElements.mobileSearchUsersLink) authElements.mobileSearchUsersLink.style.display = isLoggedIn ? 'block' : 'none';
+    if (authElements.mobileProfileLink) authElements.mobileProfileLink.style.display = isLoggedIn ? 'block' : 'none';
+    if (authElements.mobileLogoutBtn) authElements.mobileLogoutBtn.style.display = isLoggedIn ? 'block' : 'none';
+    if (authElements.mobileAdminLink) authElements.mobileAdminLink.style.display = 'none'; // Admin wird später bei Bedarf eingeblendet
 
-                    if (userData.isAdmin === true && authElements.adminLink) {
-                        authElements.adminLink.classList.remove('hidden');
-                        if(authElements.mobileAdminLink) authElements.mobileAdminLink.style.display = 'block';
-                    }
+    // Logik für eingeloggte User (Nachrichten, Admin-Status etc.)
+    if (isLoggedIn) {
+        unsubscribeFromUserDoc = db.collection('users').doc(user.uid).onSnapshot(doc => {
+             if (doc.exists) {
+                const userData = doc.data();
+                const totalUnreadMessages = userData.totalUnreadMessages || 0;
+                const pendingRequests = userData.pendingFriendRequests || 0;
+                const totalNotifications = totalUnreadMessages + pendingRequests;
+
+                if (totalNotifications > 0 && authElements.unreadBadge) {
+                    authElements.unreadBadge.textContent = totalNotifications > 9 ? '9+' : totalNotifications;
+                    authElements.unreadBadge.classList.remove('hidden');
+                } else if(authElements.unreadBadge) {
+                    authElements.unreadBadge.classList.add('hidden');
                 }
-            });
-        } else {
-            if (unsubscribeFromUserDoc) unsubscribeFromUserDoc();
-            if (document.getElementById('unread-messages-badge')) document.getElementById('unread-messages-badge').classList.add('hidden');
-        }
-    });
+
+                if (userData.isAdmin === true && authElements.adminLink) {
+                    authElements.adminLink.classList.remove('hidden');
+                    if(authElements.mobileAdminLink) authElements.mobileAdminLink.style.display = 'block';
+                }
+            }
+        });
+    } else {
+        // Aufräumen, wenn der User ausgeloggt ist
+        if (unsubscribeFromUserDoc) unsubscribeFromUserDoc();
+        if (document.getElementById('unread-messages-badge')) document.getElementById('unread-messages-badge').classList.add('hidden');
+    }
+});
 
     // --- TEIL B: ALLE ANDEREN EVENT-LISTENER UND INITIALISIERUNGEN ---
     // Hier fügst du den Code aus den alten DOMContentLoaded-Blöcken ein.
