@@ -1,2 +1,8 @@
 [functions]
   directory = "serverless/"
+  
+[functions."call-gemini"]
+  timeout = 30 # Gibt der Gemini-Funktion 30 Sekunden Zeit
+
+[functions."call-igdb"]
+  timeout = 25 # Gibt der IGDB-Funktion 25 Sekunden Zeit
