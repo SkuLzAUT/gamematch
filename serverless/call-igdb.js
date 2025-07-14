@@ -15,32 +15,23 @@ exports.handler = async function(event, context) {
         const { query, endpoint = 'games' } = JSON.parse(event.body);
         const apiUrl = `https://api.igdb.com/v4/${endpoint}`;
         
-        // ======================================================================
-        // KORREKTUR: Wir passen die Anfrage an den Endpunkt an.
-        // ======================================================================
-        let apiResponse;
+        // WICHTIGE KORREKTUR:
+        // Wir verwenden eine POST-Anfrage für alle Endpunkte, wie es von IGDB vorgesehen ist.
+        // Der vorherige Fehler lag in einer fehlerhaften Annahme meinerseits.
+        // Der 'query'-String selbst muss korrekt sein.
+        const apiResponse = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Client-ID': TWITCH_CLIENT_ID,
+                'Authorization': `Bearer ${accessToken}`,
+                'Accept': 'application/json'
+            },
+            body: query
+        });
 
-        // Für die meisten Anfragen (wie 'games') nutzen wir die normale POST-Methode.
-        if (endpoint !== 'pulses/articles') { // Ein kleiner Trick, da 'pulses' selbst nicht direkt abfragbar ist
-             apiResponse = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Client-ID': TWITCH_CLIENT_ID,
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Accept': 'application/json'
-                },
-                body: query
-            });
-        }
-        // HINWEIS: Eine direkte, komplexe News-Abfrage an IGDB ist bekanntermaßen schwierig.
-        // Diese Funktion ist jetzt so gebaut, dass sie für 'games' und andere Standard-Endpunkte
-        // funktioniert. Für eine robuste News-Integration ist oft eine Partnerschaft
-        // oder eine andere News-API (z.B. Steam News API) der zuverlässigste Weg.
-        // Wir lassen den News-Teil vorerst weg, um die Stabilität der Seite zu gewährleisten.
-
-        if (!apiResponse || !apiResponse.ok) {
-            const errorBody = apiResponse ? await apiResponse.text() : "No response from API";
-            throw new Error(`IGDB API Error (${apiUrl}): ${apiResponse?.statusText || "Unknown Status"} - ${errorBody}`);
+        if (!apiResponse.ok) {
+            const errorBody = await apiResponse.text();
+            throw new Error(`IGDB API Error (${apiUrl}): ${apiResponse.statusText} - ${errorBody}`);
         }
 
         const responseData = await apiResponse.json();
