@@ -501,7 +501,6 @@ main {
                 <button data-i18n="profile_tab_friends" data-target="profile-content-freunde" class="profile-tab-btn font-semibold pb-3 border-b-2"></button>
                 <button data-i18n="profile_tab_stats" data-target="profile-content-stats" class="profile-tab-btn font-semibold pb-3 border-b-2"></button>
                 <button data-i18n="profile_tab_lfg" data-target="profile-content-mitspieler" class="profile-tab-btn font-semibold pb-3 border-b-2"></button>
-                <button data-i18n="profile_tab_news" data-target="profile-content-news" class="profile-tab-btn font-semibold pb-3 border-b-2"></button>
             </div>
 
             <div id="profile-tab-content-container">
@@ -3516,10 +3515,11 @@ async function displayUserProfile(userId, filter = 'all') {
             await loadSavedGames(userId, filter, true);
         } catch (e) { console.error("Fehler in loadSavedGames isoliert:", e); }
         
+    /* VORERST DEAKTIVIERT, UM FEHLER ZU VERMEIDEN
         try {
-    await displayGamingNews();
-    } catch (e) { console.error("Fehler beim Laden der News isoliert:", e); }
-        
+            await displayGamingNews();
+        } catch (e) { console.error("Fehler beim Laden der News isoliert:", e); }
+        */
         // --- TABS AKTIVIEREN ---
         // Dies wird jetzt immer erreicht.
         setupProfileListeners();
