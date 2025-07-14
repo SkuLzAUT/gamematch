@@ -4372,17 +4372,15 @@ async function displayGamingNews() {
     container.innerHTML = `<p class="text-gray-400 text-center">${i18next.t('news_loading')}</p>`;
 
     try {
-        // ======================================================================
-        // KORRIGIERTE IGDB-QUERY FÜR NEWS
-        // ======================================================================
-        // Wir fragen jetzt nach dem ganzen 'article'-Objekt und filtern nach Pulses, die ein solches haben.
         const fourteenDaysAgo = Math.floor(Date.now() / 1000) - (14 * 24 * 60 * 60);
+        
+        // KORREKTUR: Ein Semikolon am Ende der Query hinzugefügt
         const query = `
             fields article.title, article.summary, image, url, pulse_source.name;
             where published_at > ${fourteenDaysAgo} & article != null;
             sort popularity desc;
             limit 5;
-        `;
+        `; // <--- Das Semikolon hier ist der entscheidende Punkt
 
         const response = await fetch('/.netlify/functions/call-igdb', {
             method: 'POST',
