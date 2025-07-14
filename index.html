@@ -2713,66 +2713,63 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
 }
 async function searchGames(tags, genres) {
     setLoading(true);
-    console.log(`Starte Suche mit Tags: ${tags}, Genres: ${genres}`);
+    console.log(`Starte IGDB-Suche mit Genres: ${genres}, Tags: ${tags}`);
 
     try {
-        const hasIndie = (tags && tags.includes('indie')) || (genres && genres.includes('indie'));
-        const hasAAA = tags && tags.includes('aaa');
-
-        let searchPromises = [];
+        // Schritt 3a: APICalypse-Query zusammenbauen
+        // Dies ist die "Sprache" der IGDB API. Sie ist extrem mächtig.
+        let whereClauses = [];
+        if (genres) {
+            // Beispiel: genres = "shooter,action" -> genres = ("shooter", "action")
+            const genreSlugs = genres.split(',').map(g => `"${g}"`).join(',');
+            whereClauses.push(`genres.slug = (${genreSlugs})`);
+        }
+        if (tags) {
+            const tagSlugs = tags.split(',').map(t => `"${t}"`).join(',');
+            // IGDB unterscheidet nicht so stark zwischen Tags und Themes, wir suchen in beidem
+            whereClauses.push(`(themes.slug = (${tagSlugs}) | keywords.slug = (${tagSlugs}))`);
+        }
         
-        const fetchParams = (g) => ({
-            path: '/api/games',
-            params: { stores: 1, page_size: 20, genres: g, tags: tags, ordering: '-metacritic' }
+        // Füge eine Bedingung hinzu, um nur Spiele mit Cover und Namen zu bekommen
+        whereClauses.push("cover != null & name != null");
+
+        const whereString = whereClauses.join(' & ');
+
+        // Die finale Query: Definiert, welche Felder wir wollen und wie wir filtern/sortieren.
+        const query = `
+            fields name, summary, cover.url, genres.name, genres.slug, themes.name, themes.slug, keywords.name, keywords.slug; 
+            where ${whereString};
+            sort total_rating_count desc;
+            limit 20;
+        `;
+        
+        // Schritt 3b: Die neue Netlify Function aufrufen
+        const response = await fetch('/.netlify/functions/call-igdb', {
+            method: 'POST',
+            body: JSON.stringify({ query: query })
         });
 
-        // KORREKTUR: Intelligente Suchlogik basierend auf User-Wunsch
-        if (hasIndie && !hasAAA) {
-            console.log("Führe NUR Indie-Suche durch.");
-            const indieGenres = genres ? genres.split(',').filter(g => g !== 'indie').join(',') : '';
-            searchPromises.push(fetch('/.netlify/functions/call-rawg', {
-                method: 'POST', body: JSON.stringify(fetchParams(`indie,${indieGenres}`))
-            }).then(res => res.json()));
-        } else if (hasAAA && !hasIndie) {
-            console.log("Führe NUR allgemeine/AAA-Suche durch.");
-            searchPromises.push(fetch('/.netlify/functions/call-rawg', {
-                method: 'POST', body: JSON.stringify(fetchParams(genres))
-            }).then(res => res.json()));
-        } else {
-            // Standardfall: Diversifizierte Suche, wenn weder Indie noch AAA explizit genannt wurden
-            console.log("Führe diversifizierte Suche durch (Indie & Allgemein).");
-            const indieGenres = genres ? `indie,${genres}` : 'indie';
-            searchPromises.push(fetch('/.netlify/functions/call-rawg', {
-                method: 'POST', body: JSON.stringify(fetchParams(indieGenres))
-            }).then(res => res.json()));
-            searchPromises.push(fetch('/.netlify/functions/call-rawg', {
-                method: 'POST', body: JSON.stringify(fetchParams(genres))
-            }).then(res => res.json()));
+        if (!response.ok) {
+            throw new Error(`IGDB Netlify function error: ${response.status}`);
         }
 
-        const responses = await Promise.all(searchPromises);
-        let combinedGames = responses.flatMap(response => response.results || []);
-        let uniqueGames = Array.from(new Map(combinedGames.map(game => [game.id, game])).values());
+        const igdbResults = await response.json();
+        
+        // Schritt 3c: Die IGDB-Daten in unser altes Format umwandeln
+        // Das ist wichtig, damit der Rest deines Codes weiterhin funktioniert!
+        const formattedGames = igdbResults.map(game => ({
+            id: game.id,
+            name: game.name,
+            background_image: game.cover ? game.cover.url.replace('t_thumb', 't_cover_big') : 'https://placehold.co/600x400',
+            // Wir simulieren die 'tags'-Struktur, die unser Code erwartet
+            tags: [...(game.genres || []), ...(game.themes || []), ...(game.keywords || [])]
+        }));
 
-        // Client-seitige Verifizierung (unser "Türsteher")
-        if (hasIndie) {
-            const strictlyIndieGames = uniqueGames.filter(game => game.genres && game.genres.some(g => g.slug === 'indie'));
-            if (strictlyIndieGames.length > 0) {
-                console.log(`Strikte Indie-Filterung angewendet. Reduziert auf ${strictlyIndieGames.length} Spiele.`);
-                uniqueGames = strictlyIndieGames;
-            }
-        }
-        
-        for (let i = uniqueGames.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [uniqueGames[i], uniqueGames[j]] = [uniqueGames[j], uniqueGames[i]];
-        }
-        
-        console.log(`Finale, bereinigte und gemischte Liste: ${uniqueGames.length} einzigartige Spiele.`);
-        return uniqueGames;
+        console.log(`Finale, bereinigte Liste von IGDB: ${formattedGames.length} einzigartige Spiele.`);
+        return formattedGames;
 
     } catch (error) {
-        console.error("Fehler bei der Spielesuche:", error);
+        console.error("Fehler bei der IGDB Spielesuche:", error);
         renderErrorState("Fehler bei der Spielesuche. Bitte versuche es später erneut.");
         return [];
     } finally {
