@@ -3998,167 +3998,145 @@ async function displayLatestNewsOnHome() {
     }
 }
 document.addEventListener('DOMContentLoaded', () => {
-    // --- TEIL A: DER AUTH-LISTENER ---
-    // Er muss hier rein, damit er erst startet, wenn die Seite bereit ist.
+document.addEventListener('DOMContentLoaded', () => {
+
+    // Authentifizierungs-Status überwachen
     auth.onAuthStateChanged(user => {
         const isLoggedIn = !!user;
-        
-        // UI Elemente, die vom Login-Status abhängen
         const authElements = {
-        loginBtn: document.getElementById('login-btn'),
-        registerBtn: document.getElementById('register-btn'),
-        logoutBtn: document.getElementById('logout-btn'),
-        profileLink: document.getElementById('profile-link'),
-        searchUsersLink: document.getElementById('search-users-link'),
-        leaderboardLink: document.getElementById('leaderboard-link'),
-        unreadBadge: document.getElementById('unread-messages-badge'),
-        adminLink: document.getElementById('admin-link'),
+            // Desktop
+            loginBtn: document.getElementById('login-btn'),
+            registerBtn: document.getElementById('register-btn'),
+            logoutBtn: document.getElementById('logout-btn'),
+            profileLink: document.getElementById('profile-link'),
+            searchUsersLink: document.getElementById('search-users-link'),
+            leaderboardLink: document.getElementById('leaderboard-link'),
+            adminLink: document.getElementById('admin-link'),
+            unreadBadge: document.getElementById('unread-messages-badge'),
+            // Mobile
+            mobileLoginBtn: document.getElementById('mobile-login-btn'),
+            mobileRegisterBtn: document.getElementById('mobile-register-btn'),
+            mobileMenuDivider: document.getElementById('mobile-menu-divider'),
+            mobileLeaderboardLink: document.getElementById('mobile-leaderboard-link'),
+            mobileSearchUsersLink: document.getElementById('mobile-search-users-link'),
+            mobileProfileLink: document.getElementById('mobile-profile-link'),
+            mobileAdminLink: document.getElementById('mobile-admin-link'),
+            mobileLogoutBtn: document.getElementById('mobile-logout-btn')
+        };
         
-        // Mobile Desktop-Elemente
-        mobileLeaderboardLink: document.getElementById('mobile-leaderboard-link'),
-        mobileSearchUsersLink: document.getElementById('mobile-search-users-link'),
-        mobileProfileLink: document.getElementById('mobile-profile-link'),
-        mobileAdminLink: document.getElementById('mobile-admin-link'),
-        mobileLogoutBtn: document.getElementById('mobile-logout-btn'),
+        // --- KORREKTUR: Robuste Logik für alle Elemente ---
+        // Logged-out Zustand
+        authElements.loginBtn?.classList.toggle('hidden', isLoggedIn);
+        authElements.registerBtn?.classList.toggle('hidden', isLoggedIn);
+        authElements.mobileLoginBtn?.classList.toggle('hidden', isLoggedIn);
+        authElements.mobileRegisterBtn?.classList.toggle('hidden', isLoggedIn);
+        authElements.mobileMenuDivider?.classList.toggle('hidden', isLoggedIn);
+
+        // Logged-in Zustand
+        authElements.logoutBtn?.classList.toggle('hidden', !isLoggedIn);
+        authElements.profileLink?.classList.toggle('hidden', !isLoggedIn);
+        authElements.searchUsersLink?.classList.toggle('hidden', !isLoggedIn);
+        authElements.leaderboardLink?.classList.toggle('hidden', !isLoggedIn);
+        authElements.mobileLeaderboardLink?.classList.toggle('hidden', !isLoggedIn);
+        authElements.mobileSearchUsersLink?.classList.toggle('hidden', !isLoggedIn);
+        authElements.mobileProfileLink?.classList.toggle('hidden', !isLoggedIn);
+        authElements.mobileLogoutBtn?.classList.toggle('hidden', !isLoggedIn);
+
+        // Elemente, die erst bei Bedarf gezeigt werden
+        authElements.adminLink?.classList.add('hidden');
+        authElements.mobileAdminLink?.classList.add('hidden');
         
-        // NEU: Login/Register-Buttons für Mobilgeräte
-        mobileLoginBtn: document.getElementById('mobile-login-btn'),
-        mobileRegisterBtn: document.getElementById('mobile-register-btn'),
-        mobileMenuDivider: document.getElementById('mobile-menu-divider')
-    };
-
-    // UI Logik für ALLE Elemente hier bündeln
-    // Desktop
-    if (authElements.loginBtn) authElements.loginBtn.classList.toggle('hidden', isLoggedIn);
-    if (authElements.registerBtn) authElements.registerBtn.classList.toggle('hidden', isLoggedIn);
-    if (authElements.logoutBtn) authElements.logoutBtn.classList.toggle('hidden', !isLoggedIn);
-    if (authElements.profileLink) authElements.profileLink.classList.toggle('hidden', !isLoggedIn);
-    if (authElements.searchUsersLink) authElements.searchUsersLink.classList.toggle('hidden', !isLoggedIn);
-    if (authElements.leaderboardLink) authElements.leaderboardLink.classList.toggle('hidden', !isLoggedIn);
-    if (authElements.adminLink) authElements.adminLink.classList.add('hidden'); // Admin wird später bei Bedarf eingeblendet
-
-     // --- Mobile ---
-    // Logik für Logged-Out User
-    const showForLoggedOut = !isLoggedIn;
-    if (authElements.mobileLoginBtn) authElements.mobileLoginBtn.classList.toggle('hidden', !showForLoggedOut);
-    if (authElements.mobileRegisterBtn) authElements.mobileRegisterBtn.classList.toggle('hidden', !showForLoggedOut);
-    if (authElements.mobileMenuDivider) authElements.mobileMenuDivider.classList.toggle('hidden', !showForLoggedOut);
-
-    // Logik für Logged-In User
-    const showForLoggedIn = isLoggedIn;
-    if (authElements.mobileLeaderboardLink) authElements.mobileLeaderboardLink.classList.toggle('hidden', !showForLoggedIn);
-    if (authElements.mobileSearchUsersLink) authElements.mobileSearchUsersLink.classList.toggle('hidden', !showForLoggedIn);
-    if (authElements.mobileProfileLink) authElements.mobileProfileLink.classList.toggle('hidden', !showForLoggedIn);
-    if (authElements.mobileLogoutBtn) authElements.mobileLogoutBtn.classList.toggle('hidden', !showForLoggedIn);
-    if (authElements.mobileAdminLink) authElements.mobileAdminLink.classList.add('hidden'); // Bleibt erstmal versteckt
-
-    // Logik für eingeloggte User (Nachrichten, Admin-Status etc.)
-    if (isLoggedIn) {
-        unsubscribeFromUserDoc = db.collection('users').doc(user.uid).onSnapshot(doc => {
-             if (doc.exists) {
-                const userData = doc.data();
-                const totalUnreadMessages = userData.totalUnreadMessages || 0;
-                const pendingRequests = userData.pendingFriendRequests || 0;
-                const totalNotifications = totalUnreadMessages + pendingRequests;
-
-                if (totalNotifications > 0 && authElements.unreadBadge) {
-                    authElements.unreadBadge.textContent = totalNotifications > 9 ? '9+' : totalNotifications;
-                    authElements.unreadBadge.classList.remove('hidden');
-                } else if(authElements.unreadBadge) {
-                    authElements.unreadBadge.classList.add('hidden');
+        if (isLoggedIn) {
+            unsubscribeFromUserDoc = db.collection('users').doc(user.uid).onSnapshot(doc => {
+                 if (doc.exists) {
+                    const userData = doc.data();
+                    const totalUnread = (userData.totalUnreadMessages || 0) + (userData.pendingFriendRequests || 0);
+                    if (totalUnread > 0 && authElements.unreadBadge) {
+                        authElements.unreadBadge.textContent = totalUnread > 9 ? '9+' : totalUnread;
+                        authElements.unreadBadge.classList.remove('hidden');
+                    } else if(authElements.unreadBadge) {
+                        authElements.unreadBadge.classList.add('hidden');
+                    }
+                    if (userData.isAdmin === true) {
+                        authElements.adminLink?.classList.remove('hidden');
+                        authElements.mobileAdminLink?.classList.remove('hidden');
+                    }
                 }
-
-                if (userData.isAdmin === true && authElements.adminLink) {
-                    authElements.adminLink.classList.remove('hidden');
-                    if(authElements.mobileAdminLink) authElements.mobileAdminLink.style.display = 'block';
-                }
-            }
-        });
-    } else {
-        // Aufräumen, wenn der User ausgeloggt ist
-        if (unsubscribeFromUserDoc) unsubscribeFromUserDoc();
-        if (document.getElementById('unread-messages-badge')) document.getElementById('unread-messages-badge').classList.add('hidden');
-    }
-});
-
-    // --- TEIL B: ALLE ANDEREN EVENT-LISTENER UND INITIALISIERUNGEN ---
-    // Hier fügst du den Code aus den alten DOMContentLoaded-Blöcken ein.
-    // Event Listeners für Auth Modal
-document.getElementById('login-btn')?.addEventListener('click', () => openAuthModal('login'));
-document.getElementById('register-btn')?.addEventListener('click', () => openAuthModal('register'));
-document.getElementById('close-auth-modal-btn')?.addEventListener('click', closeAuthModal);
-document.getElementById('auth-modal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'auth-modal') closeAuthModal();
-});
-document.getElementById('switch-to-register')?.addEventListener('click', () => openAuthModal('register'));
-document.getElementById('switch-to-login')?.addEventListener('click', () => openAuthModal('login'));
-
-// Formular-Submissions
-document.getElementById('login-form')?.addEventListener('submit', handleEmailLogin);
-document.getElementById('register-form')?.addEventListener('submit', handleEmailRegister);
-
-// Google Sign-In
-document.getElementById('google-signin-btn')?.addEventListener('click', signInWithGoogle);
-document.getElementById('google-signup-btn')?.addEventListener('click', signInWithGoogle);
-
-// Logout
-document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
-document.getElementById('mobile-logout-btn')?.addEventListener('click', handleLogout);
-
-// Mobile Menu
-const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-const mobileMenu = document.getElementById('mobile-menu');
-const openIcon = document.getElementById('menu-open-icon');
-const closeIcon = document.getElementById('menu-close-icon');
-
-mobileMenuBtn?.addEventListener('click', () => {
-    mobileMenu.classList.toggle('hidden');
-    openIcon.classList.toggle('hidden');
-    closeIcon.classList.toggle('hidden');
-});
-
-// Schließe das mobile Menü, wenn ein Link geklickt wird
-mobileMenu?.addEventListener('click', (e) => {
-    if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
-        mobileMenu.classList.add('hidden');
-        openIcon.classList.remove('hidden');
-        closeIcon.classList.add('hidden');
-    }
-});
-
-// Admin Tab Logik
-// Admin Tab Logik (KORRIGIERT)
-const adminTabs = document.getElementById('admin-tabs');
-if(adminTabs) {
-    adminTabs.addEventListener('click', (e) => {
-        const clickedButton = e.target.closest('.profile-tab-btn');
-        if (!clickedButton) return;
-
-        // Alle Buttons im Admin-Tab-Bereich deaktivieren
-        adminTabs.querySelectorAll('.profile-tab-btn').forEach(btn => btn.classList.remove('active'));
-        // Alle Inhalts-Container im Admin-Bereich deaktivieren (durch Entfernen von 'active')
-        document.querySelectorAll('#admin-tab-content-container .profile-tab-content').forEach(content => content.classList.remove('active'));
-        
-        // Den geklickten Button aktivieren
-        clickedButton.classList.add('active');
-        // Den dazugehörigen Inhalts-Container aktivieren
-        const targetContent = document.getElementById(clickedButton.dataset.target);
-        if (targetContent) {
-            targetContent.classList.add('active');
+            });
+        } else {
+            if (unsubscribeFromUserDoc) unsubscribeFromUserDoc();
+            if (authElements.unreadBadge) authElements.unreadBadge.classList.add('hidden');
         }
     });
-}
-// Blog Formular
-document.getElementById('blog-post-form')?.addEventListener('submit', handleBlogPostSubmit);
-document.getElementById('clear-blog-form')?.addEventListener('click', () => {
-    document.getElementById('blog-post-form').reset();
-    document.getElementById('blog-post-id').value = '';
-});
 
-// Öffnen des Cookie-Modals
-document.getElementById('open-cookie-settings')?.addEventListener('click', () => {
-    document.getElementById('cookie-settings-modal').classList.remove('invisible', 'opacity-0');
-});
+    // --- Alle anderen Event-Listener ---
+    
+    // Auth Modal
+    document.getElementById('login-btn')?.addEventListener('click', () => openAuthModal('login'));
+    document.getElementById('register-btn')?.addEventListener('click', () => openAuthModal('register'));
+    document.getElementById('mobile-login-btn')?.addEventListener('click', () => openAuthModal('login'));
+    document.getElementById('mobile-register-btn')?.addEventListener('click', () => openAuthModal('register'));
+    document.getElementById('open-login-modal-btn')?.addEventListener('click', () => openAuthModal('login'));
+    document.getElementById('open-register-modal-btn')?.addEventListener('click', () => openAuthModal('register'));
+    document.getElementById('close-auth-modal-btn')?.addEventListener('click', closeAuthModal);
+    document.getElementById('auth-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'auth-modal') closeAuthModal();
+    });
+    document.getElementById('switch-to-register')?.addEventListener('click', () => openAuthModal('register'));
+    document.getElementById('switch-to-login')?.addEventListener('click', () => openAuthModal('login'));
+
+    // Formular-Submissions
+    document.getElementById('login-form')?.addEventListener('submit', handleEmailLogin);
+    document.getElementById('register-form')?.addEventListener('submit', handleEmailRegister);
+
+    // Google Sign-In
+    document.getElementById('google-signin-btn')?.addEventListener('click', signInWithGoogle);
+    document.getElementById('google-signup-btn')?.addEventListener('click', signInWithGoogle);
+
+    // Logout
+    document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+    document.getElementById('mobile-logout-btn')?.addEventListener('click', handleLogout);
+
+    // Mobile Menu
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const openIcon = document.getElementById('menu-open-icon');
+    const closeIcon = document.getElementById('menu-close-icon');
+
+    mobileMenuBtn?.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+        openIcon.classList.toggle('hidden');
+        closeIcon.classList.toggle('hidden');
+    });
+    mobileMenu?.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
+            mobileMenu.classList.add('hidden');
+            openIcon.classList.remove('hidden');
+            closeIcon.classList.add('hidden');
+        }
+    });
+
+    // Admin Tabs
+    const adminTabs = document.getElementById('admin-tabs');
+    if (adminTabs) {
+        adminTabs.addEventListener('click', (e) => {
+            const clickedButton = e.target.closest('.profile-tab-btn');
+            if (!clickedButton) return;
+            adminTabs.querySelectorAll('.profile-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('#admin-tab-content-container .profile-tab-content').forEach(content => content.classList.remove('active'));
+            clickedButton.classList.add('active');
+            const targetContent = document.getElementById(clickedButton.dataset.target);
+            if (targetContent) targetContent.classList.add('active');
+        });
+    }
+    
+    // Blog Formular
+    document.getElementById('blog-post-form')?.addEventListener('submit', handleBlogPostSubmit);
+    document.getElementById('clear-blog-form')?.addEventListener('click', () => {
+        document.getElementById('blog-post-form').reset();
+        document.getElementById('blog-post-id').value = '';
+    });
+    
     // Giveaway Banner
     const giveawayBanner = document.getElementById('giveaway-banner');
     const closeGiveawayBanner = document.getElementById('close-giveaway-banner');
@@ -4171,15 +4149,8 @@ document.getElementById('open-cookie-settings')?.addEventListener('click', () =>
             sessionStorage.setItem('giveawayBannerClosed', 'true');
         });
     }
-
-    // Cookie Management
-    // ... (Hier den kompletten Cookie-Code einfügen) ...
-
-    // Allgemeine UI-Elemente
-    // ... (Hier alle addEventListener für die Auth-Buttons, Mobile Menu, etc. einfügen) ...
-
-    // --- TEIL C: START-FUNKTIONEN ---
-    // Diese werden ganz am Ende aufgerufen.
+    
+    // Initialisierungsfunktionen
     incrementVisitCounter();
     Promise.all([loadTagsFromAPI(), loadGenresFromAPI()]).then(() => {
         console.log("Alle Tags und Genres erfolgreich geladen.");
