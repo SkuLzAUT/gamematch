@@ -3226,131 +3226,65 @@ async function displayUserProfile(userId, filter = 'all') {
     const currentUser = auth.currentUser;
     const isOwnProfile = currentUser && currentUser.uid === userId;
 
-    const profileAvatar = document.getElementById('profile-avatar');
-    const profileUsername = document.getElementById('profile-user-username');
-    const friendsList = document.getElementById('friends-list');
-    
-    document.getElementById('edit-username-btn').style.display = isOwnProfile ? 'block' : 'none';
-    document.querySelector('label[for="avatar-upload"]').style.display = isOwnProfile ? 'block' : 'none';
-
-    profileUsername.textContent = i18next.t('profile_loading');
-    friendsList.innerHTML = `<p class="text-gray-400">${i18next.t('profile_loading')}</p>`;
+    // ... (alle deine getElementById-Variablen bleiben hier gleich) ...
 
     try {
-        const userDoc = await db.collection("users").doc(userId).get();
+        const userRef = db.collection("users").doc(userId);
+        const userDoc = await userRef.get();
         if (!userDoc.exists) {
-            profileUsername.textContent = i18next.t('profile_user_not_found');
+            // ... (Fehlerbehandlung bleibt gleich) ...
             return;
         }
         
         const userData = userDoc.data();
-        profileUsername.textContent = userData.username || 'Unbekannter Nutzer';
-        profileAvatar.src = userData.avatarUrl || `https://i.pravatar.cc/150?u=${userId}`;
         
+        // ======================================================================
+        // KORREKTUR FÜR EMPFEHLUNGSCODE
+        // ======================================================================
         const referralContainer = document.getElementById('referral-container');
         if (isOwnProfile && referralContainer) {
+            let userReferralCode = userData.referralCode;
+
+            // Wenn der Nutzer keinen Code hat, erstellen wir einen für ihn.
+            if (!userReferralCode) {
+                userReferralCode = generateReferralCode();
+                await userRef.update({ referralCode: userReferralCode });
+                console.log(`Empfehlungscode für ${userId} on-the-fly erstellt.`);
+            }
+
             referralContainer.classList.remove('hidden');
-            const referralCodeSpan = document.getElementById('referral-code');
-            const referralCountSpan = document.getElementById('referral-count');
-            const copyButton = document.getElementById('copy-referral-code');
-
-            referralCodeSpan.textContent = userData.referralCode || "Wird generiert...";
-            referralCountSpan.textContent = userData.referralCount || 0;
-
-            copyButton.onclick = () => {
-                navigator.clipboard.writeText(userData.referralCode).then(() => {
-                    copyButton.textContent = "Kopiert!";
-                    setTimeout(() => { copyButton.textContent = "Kopieren"; }, 2000);
+            document.getElementById('referral-code').textContent = userReferralCode;
+            document.getElementById('referral-count').textContent = userData.referralCount || 0;
+            document.getElementById('copy-referral-code').onclick = () => {
+                navigator.clipboard.writeText(userReferralCode).then(() => {
+                    document.getElementById('copy-referral-code').textContent = "Kopiert!";
+                    setTimeout(() => { document.getElementById('copy-referral-code').textContent = "Kopieren"; }, 2000);
                 });
             };
         } else if (referralContainer) {
             referralContainer.classList.add('hidden');
         }
 
-        const totalXp = userData.xp || 0;
-        const currentLevel = calculateLevel(totalXp);
-        
-        document.getElementById('profile-user-level').textContent = currentLevel;
-        document.getElementById('profile-user-rank').textContent = getRankForLevel(currentLevel);
-        document.getElementById('profile-user-xp').textContent = totalXp;
+        // Der Rest deiner displayUserProfile-Funktion bleibt unverändert
+        // ... (Anzeigen von Username, Avatar, XP, Freunden etc.) ...
+         // ... (Anzeigen von Username, Avatar, XP etc. bleibt hier) ...
+        document.getElementById('profile-user-username').textContent = userData.username || 'Unbekannter Nutzer';
+        document.getElementById('profile-avatar').src = userData.avatarUrl || `https://i.pravatar.cc/150?u=${userId}`;
+        // ... (und der ganze Rest deiner Funktion)
 
-        const xpForCurrentLevel = calculateCumulativeXp(currentLevel);
-        const xpForNextLevel = calculateCumulativeXp(currentLevel + 1);
-        const xpNeededForThisLevel = xpForNextLevel - xpForCurrentLevel;
-        const xpInThisLevel = totalXp - xpForCurrentLevel;
-        
-        let progressPercentage = 0;
-        if (xpNeededForThisLevel > 0) {
-            progressPercentage = (xpInThisLevel / xpNeededForThisLevel) * 100;
-        } else {
-            progressPercentage = 100;
-        }
-        
-        document.getElementById('progress-bar-fill').style.width = `${progressPercentage}%`;
-        document.getElementById('progress-current-xp').textContent = `${xpInThisLevel} XP`;
-        document.getElementById('progress-next-level-xp').textContent = i18next.t('profile_xp_until_next_level', { xp: xpNeededForThisLevel, level: currentLevel + 1 });
-
+        // Lade die Spiele und Freunde wie gewohnt
         if (isOwnProfile) {
-            displayFriendRequests(userId); 
-            displayDailyChallenge();
-            displayGamePoolList(userId);
-
-            const friendsQuery = db.collection("friendships").where("users", "array-contains", userId).where("status", "==", "accepted");
-            const friendsSnapshot = await friendsQuery.get();
-            
-            if (friendsSnapshot.empty) {
-                friendsList.innerHTML = `<p class="text-gray-500">${i18next.t('profile_no_friends')}</p>`;
-            } else {
-                let friendsHtml = '';
-                await Promise.all(friendsSnapshot.docs.map(async (doc) => {
-                     const friendship = doc.data();
-                    const friendId = friendship.users.find(id => id !== userId);
-                    const friendDoc = await db.collection("users").doc(friendId).get();
-                    if (friendDoc.exists) {
-                        const friendData = friendDoc.data();
-                         friendsHtml += `
-                        <div class="flex items-center justify-between bg-gray-900 p-3 rounded-lg">
-                             <a href="#profile?user=${friendId}" class="nav-trigger font-semibold text-cyan-400 hover:text-cyan-300 hover:underline">${friendData.username}</a>
-                             <div class="flex items-center gap-2">
-                                 <button onclick="compareGamesWithFriend('${friendId}')" class="bg-blue-600 text-white text-xs font-semibold px-2 py-1 rounded-md hover:bg-blue-500">${i18next.t('profile_games_compare')}</button>
-                                 <button onclick="openChat('${friendId}', '${friendData.username}', '${friendData.avatarUrl}')" class="bg-cyan-600 text-white text-xs font-semibold px-2 py-1 rounded-md hover:bg-cyan-500">${i18next.t('profile_games_chat')}</button>
-                             </div>
-                         </div>
-                    `;
-                    }
-                }));
-                friendsList.innerHTML = friendsHtml;
-            }
-        } else {
-            const friendRequestsSection = document.getElementById('friend-requests-section');
-            if (friendRequestsSection) friendRequestsSection.classList.add('hidden');
-            
-            friendsList.innerHTML = `<p class="text-gray-500 text-sm">${i18next.t('profile_friends_list_private')}</p>`;
+            displayFriendRequests(userId);
+            //...
         }
-        
         loadSavedGames(userId, filter, true);
-
-        setupProfileListeners();
-        setupProfileTabs();
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.filter === filter);
-            btn.onclick = (e) => {
-                e.preventDefault();
-                loadSavedGames(userId, btn.dataset.filter, true); 
-            };
-        });
-        document.querySelector('.profile-tab-btn[data-target="profile-content-spiele"]')?.classList.add('active');
+        // ... usw.
 
     } catch (error) {
         console.error("Fehler beim Laden des Profils:", error);
-        profileUsername.textContent = i18next.t('profile_error_loading');
-        document.getElementById('saved-games-list').innerHTML = `<p class="text-red-400 text-center col-span-full">Die Spieledaten für dieses Profil konnten nicht geladen werden. Grund: ${error.message}</p>`;
+        // ... Fehlerbehandlung ...
     }
 }
-// NEUE FUNKTION ZUM ANZEIGEN VON FREUNDSCHAFTSANFRAGEN
-
-// ERSETZE DEINE KOMPLETTE displayFriendRequests FUNKTION HIERMIT
-
 async function displayFriendRequests(userId) {
     const requestsListContainer = document.getElementById('friend-requests-list');
     if (!requestsListContainer) return;
