@@ -4037,16 +4037,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (authElements.leaderboardLink) authElements.leaderboardLink.classList.toggle('hidden', !isLoggedIn);
     if (authElements.adminLink) authElements.adminLink.classList.add('hidden'); // Admin wird später bei Bedarf eingeblendet
 
-    // Mobile
-    if (authElements.mobileLoginBtn) authElements.mobileLoginBtn.style.display = isLoggedIn ? 'none' : 'block';
-    if (authElements.mobileRegisterBtn) authElements.mobileRegisterBtn.style.display = isLoggedIn ? 'none' : 'block';
-    if (authElements.mobileMenuDivider) authElements.mobileMenuDivider.style.display = isLoggedIn ? 'none' : 'block';
+     // --- Mobile ---
+    // Logik für Logged-Out User
+    const showForLoggedOut = !isLoggedIn;
+    if (authElements.mobileLoginBtn) authElements.mobileLoginBtn.classList.toggle('hidden', !showForLoggedOut);
+    if (authElements.mobileRegisterBtn) authElements.mobileRegisterBtn.classList.toggle('hidden', !showForLoggedOut);
+    if (authElements.mobileMenuDivider) authElements.mobileMenuDivider.classList.toggle('hidden', !showForLoggedOut);
 
-    if (authElements.mobileLeaderboardLink) authElements.mobileLeaderboardLink.style.display = isLoggedIn ? 'block' : 'none';
-    if (authElements.mobileSearchUsersLink) authElements.mobileSearchUsersLink.style.display = isLoggedIn ? 'block' : 'none';
-    if (authElements.mobileProfileLink) authElements.mobileProfileLink.style.display = isLoggedIn ? 'block' : 'none';
-    if (authElements.mobileLogoutBtn) authElements.mobileLogoutBtn.style.display = isLoggedIn ? 'block' : 'none';
-    if (authElements.mobileAdminLink) authElements.mobileAdminLink.style.display = 'none'; // Admin wird später bei Bedarf eingeblendet
+    // Logik für Logged-In User
+    const showForLoggedIn = isLoggedIn;
+    if (authElements.mobileLeaderboardLink) authElements.mobileLeaderboardLink.classList.toggle('hidden', !showForLoggedIn);
+    if (authElements.mobileSearchUsersLink) authElements.mobileSearchUsersLink.classList.toggle('hidden', !showForLoggedIn);
+    if (authElements.mobileProfileLink) authElements.mobileProfileLink.classList.toggle('hidden', !showForLoggedIn);
+    if (authElements.mobileLogoutBtn) authElements.mobileLogoutBtn.classList.toggle('hidden', !showForLoggedIn);
+    if (authElements.mobileAdminLink) authElements.mobileAdminLink.classList.add('hidden'); // Bleibt erstmal versteckt
 
     // Logik für eingeloggte User (Nachrichten, Admin-Status etc.)
     if (isLoggedIn) {
