@@ -3218,71 +3218,70 @@ async function submitRating(gameId, rating) {
     }
 }
 async function displayUserProfile(userId, filter = 'all') {
-    if (!userId) {
-        console.error("Keine User-ID zum Anzeigen des Profils übergeben.");
-        return;
-    }
+    if (!userId) { return; }
 
     const currentUser = auth.currentUser;
     const isOwnProfile = currentUser && currentUser.uid === userId;
 
-    // ... (alle deine getElementById-Variablen bleiben hier gleich) ...
-
     try {
-        const userRef = db.collection("users").doc(userId);
-        const userDoc = await userRef.get();
+        const userDoc = await db.collection("users").doc(userId).get();
         if (!userDoc.exists) {
-            // ... (Fehlerbehandlung bleibt gleich) ...
+            document.getElementById('profile-content-stats').innerHTML = `<p class="text-center text-red-400">${i18next.t('profile_user_not_found')}</p>`;
             return;
         }
-        
+
         const userData = userDoc.data();
         
-        // ======================================================================
-        // KORREKTUR FÜR EMPFEHLUNGSCODE
-        // ======================================================================
+        // --- STATS ANZEIGEN (wird jetzt früher ausgeführt) ---
+        const level = userData.level || 1;
+        document.getElementById('profile-user-rank').textContent = getRankForLevel(level);
+        document.getElementById('profile-user-level').textContent = level;
+        document.getElementById('profile-user-xp').textContent = userData.xp || 0;
+        document.getElementById('profile-user-username').textContent = sanitizeHTML(userData.username || 'Nutzer');
+        document.getElementById('profile-avatar').src = userData.avatarUrl || `https://i.pravatar.cc/150?u=${userId}`;
+        
+        const xpForCurrentLevel = calculateCumulativeXp(level);
+        const xpForNextLevel = calculateCumulativeXp(level + 1);
+        const currentLevelXp = (userData.xp || 0) - xpForCurrentLevel;
+        const requiredXpForNext = xpForNextLevel - xpForCurrentLevel;
+        
+        document.getElementById('progress-current-xp').textContent = `${currentLevelXp} XP`;
+        document.getElementById('progress-next-level-xp').textContent = i18next.t('profile_xp_until_next_level', { xp: requiredXpForNext, level: level + 1 });
+        document.getElementById('progress-bar-fill').style.width = `${Math.min(100, (currentLevelXp / requiredXpForNext) * 100)}%`;
+        
+        // --- EMPFEHLUNGSCODE ---
         const referralContainer = document.getElementById('referral-container');
         if (isOwnProfile && referralContainer) {
             let userReferralCode = userData.referralCode;
-
-            // Wenn der Nutzer keinen Code hat, erstellen wir einen für ihn.
             if (!userReferralCode) {
                 userReferralCode = generateReferralCode();
-                await userRef.update({ referralCode: userReferralCode });
-                console.log(`Empfehlungscode für ${userId} on-the-fly erstellt.`);
+                await db.collection("users").doc(userId).update({ referralCode: userReferralCode });
             }
-
             referralContainer.classList.remove('hidden');
             document.getElementById('referral-code').textContent = userReferralCode;
             document.getElementById('referral-count').textContent = userData.referralCount || 0;
-            document.getElementById('copy-referral-code').onclick = () => {
-                navigator.clipboard.writeText(userReferralCode).then(() => {
-                    document.getElementById('copy-referral-code').textContent = "Kopiert!";
-                    setTimeout(() => { document.getElementById('copy-referral-code').textContent = "Kopieren"; }, 2000);
-                });
-            };
         } else if (referralContainer) {
             referralContainer.classList.add('hidden');
         }
 
-        // Der Rest deiner displayUserProfile-Funktion bleibt unverändert
-        // ... (Anzeigen von Username, Avatar, XP, Freunden etc.) ...
-         // ... (Anzeigen von Username, Avatar, XP etc. bleibt hier) ...
-        document.getElementById('profile-user-username').textContent = userData.username || 'Unbekannter Nutzer';
-        document.getElementById('profile-avatar').src = userData.avatarUrl || `https://i.pravatar.cc/150?u=${userId}`;
-        // ... (und der ganze Rest deiner Funktion)
-
-        // Lade die Spiele und Freunde wie gewohnt
+        // --- KORREKTUR: Robuste Ladeaufrufe ---
         if (isOwnProfile) {
-            displayFriendRequests(userId);
-            //...
+            try {
+                await displayFriendRequests(userId);
+            } catch (e) { console.error("Fehler in displayFriendRequests isoliert:", e); }
         }
-        loadSavedGames(userId, filter, true);
-        // ... usw.
+        try {
+            await loadSavedGames(userId, filter, true);
+        } catch (e) { console.error("Fehler in loadSavedGames isoliert:", e); }
+        
+        // --- TABS AKTIVIEREN ---
+        // Dies wird jetzt immer erreicht, auch wenn ein Lade-Aufruf fehlschlägt
+        setupProfileListeners();
+        setupProfileTabs();
+
 
     } catch (error) {
-        console.error("Fehler beim Laden des Profils:", error);
-        // ... Fehlerbehandlung ...
+        console.error("Schwerwiegender Fehler beim Laden des Profils:", error);
     }
 }
 async function displayFriendRequests(userId) {
