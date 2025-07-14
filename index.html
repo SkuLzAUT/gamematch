@@ -221,6 +221,7 @@ main {
                 <a href="#admin" id="admin-link" data-i18n="nav_admin" class="hidden font-semibold text-yellow-400 hover:text-yellow-300 transition-colors nav-trigger"></a>
                 <a href="#news" data-i18n="nav_news" class="font-semibold text-gray-300 hover:text-white transition-colors nav-trigger"></a>
                 <a href="#search-users" id="search-users-link" data-i18n="nav_community" class="hidden font-semibold text-gray-300 hover:text-white transition-colors nav-trigger"></a>
+                <a href="#partners" data-i18n="nav_partners" class="font-semibold text-gray-300 hover:text-white transition-colors nav-trigger">Partner</a>
                 <div id="profile-link" class="relative group hidden">
                     <a href="#profile" class="font-semibold text-gray-300 hover:text-white transition-colors nav-trigger inline-flex items-center gap-1">
                         <span data-i18n="nav_profile"></span>
@@ -262,6 +263,7 @@ main {
         <a href="#matchmaker" data-i18n="nav_find_game" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
         <a href="#news" data-i18n="nav_news" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
         <a href="#search-users" id="mobile-search-users-link" data-i18n="nav_community" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
+        <a href="#partners" data-i18n="nav_partners" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger">Partner</a>
         <a href="#profile" id="mobile-profile-link" data-i18n="nav_profile" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
         <a href="#leaderboard" id="mobile-leaderboard-link" data-i18n="nav_leaderboard" class="block text-2xl text-gray-300 hover:text-cyan-400 nav-trigger"></a>
         <a href="https://forms.gle/zV75jDvUzJb4aNB3A" target="_blank" data-i18n="nav_feedback" class="block text-2xl text-gray-300 hover:text-cyan-400"></a>
@@ -354,53 +356,6 @@ main {
                             <p data-i18n="loading_posts" class="text-center text-gray-400 lg:col-span-2"></p>
                         </div>
                     </div>
-                    
-                    <div class="py-16 sm:py-24">
-                        <div class="mx-auto max-w-7xl px-6 lg:px-8">
-                            <h2 data-i18n="our_partners" class="text-center text-lg font-semibold leading-8 text-white"></h2>
-                            <div class="scroller-container">
-                                <div class="scroller">
-        <a href="LINK_ZU_PARTNER_1" target="_blank" rel="noopener" class="mx-8">
-            <img src="img/partners/logo1.png" alt="Partner 1">
-        </a>
-        <a href="https://discord.gg/CycK7EsA" target="_blank" rel="noopener" class="mx-8">
-            <img src="img/partners/logo2.png" alt="Partner 2">
-        </a>
-        <a href="LINK_ZU_PARTNER_3" target="_blank" rel="noopener" class="mx-8">
-            <img src="img/partners/logo1.png" alt="Partner 3">
-        </a>
-        <a href="LINK_ZU_PARTNER_4" target="_blank" rel="noopener" class="mx-8">
-            <img src="img/partners/logo2.png" alt="Partner 4">
-        </a>
-        <a href="LINK_ZU_PARTNER_5" target="_blank" rel="noopener" class="mx-8">
-            <img src="img/partners/logo3.png" alt="Partner 5">
-        </a>
-        <a href="LINK_ZU_PARTNER_6" target="_blank" rel="noopener" class="mx-8">
-            <img src="img/partners/logo3.png" alt="Partner 6">
-        </a>
-
-        <a href="LINK_ZU_PARTNER_1" target="_blank" rel="noopener" class="mx-8">
-            <img src="img/partners/logo1.png" alt="Partner 1">
-        </a>
-        <a href="https://discord.gg/CycK7EsA" target="_blank" rel="noopener" class="mx-8">
-            <img src="img/partners/logo2.png" alt="Partner 2">
-        </a>
-        <a href="LINK_ZU_PARTNER_3" target="_blank" rel="noopener" class="mx-8">
-            <img src="img/partners/logo1.png" alt="Partner 3">
-        </a>
-        <a href="LINK_ZU_PARTNER_4" target="_blank" rel="noopener" class="mx-8">
-            <img src="img/partners/logo2.png" alt="Partner 4">
-        </a>
-         <a href="LINK_ZU_PARTNER_5" target="_blank" rel="noopener" class="mx-8">
-            <img src="img/partners/logo3.png" alt="Partner 5">
-        </a>
-        <a href="LINK_ZU_PARTNER_6" target="_blank" rel="noopener" class="mx-8">
-            <img src="img/partners/logo3.png" alt="Partner 6">
-        </a>
-    </div>
-</div>
-  </div>
-</div>
         </section>
      <section id="search-users" class="page-section py-12 fade-in">
     <div class="container mx-auto px-6">
@@ -588,6 +543,17 @@ main {
         <div id="news-post-list" class="space-y-12">
             <p data-i18n="news_loading" class="text-center text-gray-400"></p>
         </div>
+    </div>
+</section>
+<section id="partners" class="page-section py-12 fade-in">
+    <div class="container mx-auto px-6 max-w-5xl">
+        <div class="text-center mb-12">
+            <h2 data-i18n="partners_title" class="font-bold text-white text-fluid-heading">Unsere Partner</h2>
+            <p data-i18n="partners_subtitle" class="text-gray-400 mt-4 max-w-2xl mx-auto">Ein großes Dankeschön an die Communities und Projekte, die GameMatch unterstützen und mit denen wir zusammenarbeiten.</p>
+        </div>
+
+        <div id="partner-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            </div>
     </div>
 </section>
 <section id="impressum" class="page-section py-12 fade-in">
@@ -896,6 +862,27 @@ function sanitizeHTML(str) {
         return replacements[tag] || tag;
     });
 }
+const partners = [
+    {
+        name: 'Bodycam',
+        logoUrl: 'img/partners/logo2.png',
+        websiteUrl: 'https://discord.gg/XwXvKGjUYy',
+        description: 'BodyCam - der realistischste Shooter auf dem Markt, schaut heute noch auf dem Discord vorbei!'
+    },
+    {
+        name: 'Partner 2',
+        logoUrl: 'img/partners/logo1.png',
+        websiteUrl: '#', // Hier den Link zum Partner einfügen
+        description: 'Wir suchen nach weiteren Partnern'
+    },
+    {
+        name: 'Partner 3',
+        logoUrl: 'img/partners/logo3.png',
+        websiteUrl: '#',
+        description: 'Wir suchen nach weiteren Partnern'
+    }
+    // Füge hier bei Bedarf weitere Partner hinzu...
+];
 const translations = {
   de: {
     translation: {
@@ -1725,6 +1712,24 @@ async function showPlayersForGame(gameId, gameTitle) {
         console.error(`Fehler beim Abrufen der Spieler für Spiel ${gameId}:`, error);
         resultsList.innerHTML = `<p class="text-red-400">${i18next.t('profile_lfg_error_player_list')}</p>`;
     }
+}
+function displayPartners() {
+    const container = document.getElementById('partner-list');
+    if (!container) return;
+
+    let html = '';
+    partners.forEach(partner => {
+        html += `
+            <a href="${partner.websiteUrl}" target="_blank" rel="noopener noreferrer" 
+               class="block bg-gray-800 border border-gray-700 rounded-xl p-6 text-center transition-all duration-300 hover:border-cyan-500 hover:-translate-y-1">
+                <img src="${partner.logoUrl}" alt="Logo von ${sanitizeHTML(partner.name)}" 
+                     class="h-20 mx-auto mb-4 object-contain filter grayscale hover:grayscale-0 transition-all">
+                <h3 class="text-xl font-bold text-white mb-2">${sanitizeHTML(partner.name)}</h3>
+                <p class="text-gray-400 text-sm">${sanitizeHTML(partner.description)}</p>
+            </a>
+        `;
+    });
+    container.innerHTML = html;
 }
 async function displayUserManagement() {
     const userListBody = document.getElementById('admin-user-list-body');
@@ -2662,7 +2667,7 @@ async function handleNavigation() {
         }
         // Wenn der Check erfolgreich ist, lade die Admin-Daten
         displayUserManagement();
-        displayBlogManagement(); // Lade auch die Blog-Posts für das Admin-Panel
+        displayBlogManagement();
     }
     
     // Lade die öffentliche News-Seite
@@ -2670,9 +2675,15 @@ async function handleNavigation() {
         displayNews();
     }
 
-    // Dieser Teil steuert die allgemeine Seitennavigation
+    // NEU: Lade die Partner-Seite
+    if (targetPageId === '#partners') {
+        displayPartners();
+    }
+
+    // Dieser Teil steuert die allgemeine Seitennavigation und blendet die richtige Sektion ein
     showPage(targetPageId);
 
+    // Spezifische Logik für bestimmte Seiten nach dem Anzeigen ausführen
     if (targetPageId === '#matchmaker') {
         setTimeout(startConversation, 100);
     }
