@@ -2152,14 +2152,60 @@ async function handleUsernameChange() {
     }
 }
 function setupProfileListeners() {
+    // Event-Listener für das Hochladen des Avatars
     const avatarUploadInput = document.getElementById('avatar-upload');
     if (avatarUploadInput) {
         avatarUploadInput.addEventListener('change', handleAvatarUpload);
     }
+    // Event-Listener für das Ändern des Benutzernamens
     const editUsernameBtn = document.getElementById('edit-username-btn');
     if (editUsernameBtn) {
         editUsernameBtn.addEventListener('click', handleUsernameChange);
     }
+
+    // ======================================================================
+    // NEUE LOGIK FÜR DIE FILTER-BUTTONS ("Gemocht", "Abgelehnt", etc.)
+    // ======================================================================
+    const filterButtons = document.querySelectorAll('#game-filter-buttons .filter-btn');
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Finde heraus, welches Profil gerade angezeigt wird
+            const hash = window.location.hash.substring(1);
+            const [pageId, params] = hash.split('?');
+            const urlParams = new URLSearchParams(params);
+            const userId = urlParams.get('user') || auth.currentUser?.uid;
+
+            if (!userId) {
+                console.error("Filter-Klick: Keine UserID gefunden.");
+                return;
+            }
+
+            // Welcher Filter wurde geklickt? ('all', 'liked', 'disliked')
+            const filter = button.dataset.filter;
+
+            // Setze den "active"-Style für den geklickten Button
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            // Lade die Spieleliste mit dem neuen Filter neu
+            // Der 'true'-Parameter sorgt dafür, dass die alte Liste zuerst geleert wird.
+            loadSavedGames(userId, filter, true);
+        });
+    });
+    
+    // Klick-Logik für die einzelnen Spielkarten
+    document.getElementById('saved-games-list').addEventListener('click', (event) => {
+        const card = event.target.closest('.game-card-trigger');
+        if (card) {
+            openCommentModal(
+                card.dataset.gameId,
+                card.dataset.gameTitle,
+                card.dataset.gameImageUrl,
+                card.dataset.gameDescription,
+                card.dataset.isOwnProfile === 'true'
+            );
+        }
+    });
 }
 async function displayDailyChallenge() {
     const challengeContainer = document.getElementById('daily-challenge-container');
