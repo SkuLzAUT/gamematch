@@ -1385,8 +1385,14 @@ const systemPromptFinal = `
 
     Here is the required JSON structure: { "game": { "id": THE_UNIQUE_ID_FROM_THE_LIST, "description": "YOUR_PERSONAL_REASONING_IN_GERMAN." } }
 `;
-const systemPromptDescription = `You are a creative copywriter for the GameMatch website. Your task is to write a short, enthusiastic, 2-3 sentence recommendation for a given game, based on the user's original request. Address the user directly in German with 'Du'/'dir'. Be creative and convincing. Respond ONLY with the description text, nothing else.`;
-
+const systemPromptDescription = `
+    You are a creative game journalist. Your task is to write a short, enthusiastic, 2-3 sentence recommendation for a given game, based on provided facts.
+    
+    **RULES:**
+    1.  Address the user directly in German ('Du'/'dir').
+    2.  Your tone should be convincing and exciting.
+    3.  **Your entire response MUST be ONLY the text of the recommendation. Do NOT output JSON, markdown, or any other formatting. Just the plain text.**
+`;
 
 
         // FIREBASE INITIALISIERUNG
@@ -2794,33 +2800,53 @@ async function searchGames(criteria) {
             }
         }
 async function handleTagExtraction(parsedJson) {
-    // parsedJson ist jetzt ein Objekt wie { genres: [...], themes: [...] }
-    const criteria = parsedJson; 
-    
+    const criteria = parsedJson;
     if (!criteria || (!criteria.genres && !criteria.themes && !criteria.game_modes)) {
-         renderErrorState("Ich konnte leider keine passenden Suchbegriffe ableiten. Bitte starte eine neue Suche.");
-         return;
+        renderErrorState("Ich konnte leider keine passenden Suchbegriffe ableiten. Bitte starte eine neue Suche.");
+        return;
     }
 
     renderSystemMessage(`Suche nach Spielen, die zu deinen Wünschen passen...`);
-    const igdbResults = await searchGames(criteria); // Übergib das ganze Objekt
+    const igdbResults = await searchGames(criteria);
 
     if (!igdbResults || igdbResults.length === 0) {
         renderErrorState(`Ich konnte leider keine Spiele für deine Kriterien finden. Bitte starte eine neue Suche.`);
         return;
     }
 
+    // WIR (DER CODE) WÄHLEN DAS SPIEL AUS.
     const chosenGame = igdbResults[0];
-    const fullConversation = chatHistory.map(entry => entry.parts[0].text).join(' ');
+    
+    // ======================================================================
+    // NEUE LOGIK: Wir bauen einen Prompt aus Fakten, nicht aus dem Gespräch.
+    // ======================================================================
+
+    // 1. Fakten aus dem gewählten Spiel extrahieren
+    const gameFacts = {
+        name: chosenGame.name,
+        // Wandle die Genre-, Theme- etc. Objekte in einfache Textlisten um
+        genres: chosenGame.genres.map(g => g.name).join(', '),
+        themes: chosenGame.themes.map(t => t.name).join(', '),
+        game_modes: chosenGame.game_modes.map(m => m.name).join(', ')
+    };
+
+    // 2. Einen neuen, faktenbasierten Prompt für die Beschreibung erstellen
     const descriptionPrompt = `
-        User request: "${fullConversation}"
-        Chosen Game: "${chosenGame.name}"
-        Write the recommendation text now.
+        Write a short, exciting recommendation for the following game based on these facts.
+        
+        Game Name: ${gameFacts.name}
+        Genres: ${gameFacts.genres}
+        Themes/Setting: ${gameFacts.themes}
+        Game Modes: ${gameFacts.game_modes}
+        
+        Based on these facts, create the recommendation text. For example, if the genres are "Action, Adventure", you could say "Wenn du Lust auf ein packendes Abenteuer voller Action hast, ist dieses Spiel genau das Richtige für dich!".
     `;
     
+    // 3. Die KI mit den FAKTEN füttern, nicht mit dem GESPRÄCH.
     const descriptionText = await callGeminiAPI(descriptionPrompt, systemPromptDescription, false);
 
     if (descriptionText) {
+        // Wir übergeben unser gewähltes Spiel und den von der KI geschriebenen Text an die Anzeige-Funktion.
         showResult(chosenGame, descriptionText, igdbResults);
     } else {
         renderErrorState("Die KI konnte keine Beschreibung für das Spiel erstellen.");
