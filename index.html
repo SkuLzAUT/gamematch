@@ -3457,28 +3457,18 @@ async function displayUserProfile(userId, filter = 'all') {
         const userRef = db.collection("users").doc(userId);
         const userDoc = await userRef.get();
         if (!userDoc.exists) {
-            document.getElementById('profile-content-stats').innerHTML = `<p class="text-center text-red-400">${i18next.t('profile_user_not_found')}</p>`;
+            document.getElementById('profile-content-container').innerHTML = `<p class="text-center text-red-400">${i18next.t('profile_user_not_found')}</p>`;
             return;
         }
 
         const userData = userDoc.data();
         
-        // --- Profildaten und Statistiken anzeigen ---
-        const level = userData.level || 1;
-        document.getElementById('profile-user-rank').textContent = getRankForLevel(level);
-        document.getElementById('profile-user-level').textContent = level;
-        document.getElementById('profile-user-xp').textContent = userData.xp || 0;
+        // --- Profildaten anzeigen ---
         document.getElementById('profile-user-username').textContent = sanitizeHTML(userData.username || 'Nutzer');
         document.getElementById('profile-avatar').src = userData.avatarUrl || `https://i.pravatar.cc/150?u=${userId}`;
         
-        const xpForCurrentLevel = calculateCumulativeXp(level);
-        const xpForNextLevel = calculateCumulativeXp(level + 1);
-        const currentLevelXp = (userData.xp || 0) - xpForCurrentLevel;
-        const requiredXpForNext = xpForNextLevel - xpForCurrentLevel;
-        
-        document.getElementById('progress-current-xp').textContent = `${currentLevelXp} XP`;
-        document.getElementById('progress-next-level-xp').textContent = i18next.t('profile_xp_until_next_level', { xp: requiredXpForNext, level: level + 1 });
-        document.getElementById('progress-bar-fill').style.width = `${Math.min(100, (currentLevelXp / requiredXpForNext) * 100)}%`;
+        // --- Statistiken laden und anzeigen ---
+        loadAndDisplayStats(userData);
         
         // --- Empfehlungscode ---
         const referralContainer = document.getElementById('referral-container');
@@ -3517,15 +3507,34 @@ async function displayUserProfile(userId, filter = 'all') {
         try { await displayGamingNews(); } 
         catch (e) { console.error("Fehler beim Laden der News isoliert:", e); }
         
-        // ======================================================================
-        // KORREKTUR: Fehlende Aufrufe wieder hinzugefügt
-        // ======================================================================
-        setupProfileListeners(); // Rüstet Buttons wie "Profilbild ändern" aus
-        setupProfileTabs();      // Rüstet die Klick-Funktion der Tabs aus
+        // --- Tabs und Listener korrekt initialisieren ---
+        setupProfileListeners();
+        setupProfileTabs();
+
+        // KORREKTUR: Erzwinge, dass der erste Tab ("Meine Spiele") beim Laden aktiv ist.
+        document.querySelector('#profile-tabs .profile-tab-btn[data-target="profile-content-spiele"]').click();
+
 
     } catch (error) {
         console.error("Schwerwiegender Fehler beim Laden des Profils:", error);
     }
+}
+
+// NEUE HILFSFUNKTION: Bündelt die Logik für die Statistik-Anzeige
+function loadAndDisplayStats(userData) {
+    const level = userData.level || 1;
+    document.getElementById('profile-user-rank').textContent = getRankForLevel(level);
+    document.getElementById('profile-user-level').textContent = level;
+    document.getElementById('profile-user-xp').textContent = userData.xp || 0;
+
+    const xpForCurrentLevel = calculateCumulativeXp(level);
+    const xpForNextLevel = calculateCumulativeXp(level + 1);
+    const currentLevelXp = (userData.xp || 0) - xpForCurrentLevel;
+    const requiredXpForNext = xpForNextLevel - xpForCurrentLevel;
+    
+    document.getElementById('progress-current-xp').textContent = `${currentLevelXp} XP`;
+    document.getElementById('progress-next-level-xp').textContent = i18next.t('profile_xp_until_next_level', { xp: requiredXpForNext, level: level + 1 });
+    document.getElementById('progress-bar-fill').style.width = `${Math.min(100, (currentLevelXp / requiredXpForNext) * 100)}%`;
 }
 async function displayFriendRequests(userId) {
     const requestsListContainer = document.getElementById('friend-requests-list');
