@@ -2919,24 +2919,60 @@ async function handleTagExtraction(parsedJson) {
         return;
     }
 
-    const chosenGame = igdbResults[0];
+    // ======================================================================
+    // NEUE LOGIK: Gesehene Spiele filtern & Ergebnisse mischen
+    // ======================================================================
+    let finalResults = igdbResults;
+    const user = auth.currentUser;
+
+    // Schritt 1: Hole die Liste der bereits gesehenen Spiele für eingeloggte Nutzer
+    if (user) {
+        try {
+            const seenGamesSnapshot = await db.collection("users").doc(user.uid).collection("suggestedGames").get();
+            const seenGameIds = new Set(seenGamesSnapshot.docs.map(doc => doc.data().rawgId));
+            
+            // Schritt 2: Filtere die IGDB-Ergebnisse
+            const initialCount = finalResults.length;
+            const unseenGames = igdbResults.filter(game => !seenGameIds.has(game.id));
+            
+            console.log(`Filter für gesehene Spiele angewendet. Reduziert von ${initialCount} auf ${unseenGames.length} Ergebnisse.`);
+
+            // Fallback: Wenn alle Spiele aus der Suche schon gesehen wurden, nimm die ursprüngliche Liste,
+            // damit der Nutzer nicht ohne Ergebnis dasteht.
+            if (unseenGames.length > 0) {
+                finalResults = unseenGames;
+            } else {
+                console.log("Alle gefundenen Spiele wurden bereits vorgeschlagen. Nutze ursprüngliche Liste als Fallback.");
+            }
+        } catch(e) {
+            console.error("Fehler beim Abrufen der gesehenen Spiele:", e);
+        }
+    }
+
+    // Schritt 3: Mische die (gefilterte) Ergebnisliste, um Abwechslung zu schaffen
+    for (let i = finalResults.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [finalResults[i], finalResults[j]] = [finalResults[j], finalResults[i]];
+    }
+
+    // Schritt 4: Wähle das erste Spiel aus der neuen, gemischten und gefilterten Liste
+    const chosenGame = finalResults[0];
+
+    // Der Rest der Funktion bleibt gleich...
     const gameFacts = {
         name: chosenGame.name,
         genres: chosenGame.genres.map(g => g.name).join(', '),
         themes: chosenGame.themes.map(t => t.name).join(', '),
         game_modes: chosenGame.game_modes.map(m => m.name).join(', ')
     };
-
     const descriptionPrompt = `
         Write a short, exciting recommendation for the following game based on these facts.
         Game Name: ${gameFacts.name}, Genres: ${gameFacts.genres}, Themes/Setting: ${gameFacts.themes}, Game Modes: ${gameFacts.game_modes}
         Based on these facts, create the recommendation text.
     `;
-    
     const descriptionText = await callGeminiAPI(descriptionPrompt, systemPromptDescription, false);
-
     if (descriptionText) {
-        showResult(chosenGame, descriptionText, igdbResults);
+        showResult(chosenGame, descriptionText, finalResults);
     } else {
         renderErrorState("Die KI konnte keine Beschreibung für das Spiel erstellen.");
     }
