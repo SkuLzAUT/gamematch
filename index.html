@@ -1356,17 +1356,12 @@ i18next.on('languageChanged', () => {
 const systemPromptConversation = `DU BIST EIN GAME-SCOUT. Dein Ziel ist es, in einem lockeren Gespräch die Wünsche des Nutzers für ein PC-Spiel zu verstehen. STELLE IMMER NUR EINE EINZIGE FRAGE PRO ANTWORT. Frage nach Genre, Stimmung, Spielstil (realistisch, Fantasy etc.) und ob der Nutzer AAA-Titel oder Indie-Spiele bevorzugt. STELLE FRAGEN, BIS DU DIR SICHER BIST, GENUG INFOS ZU HABEN (NORMALERWEISE NACH 2-3 ANTWORTEN DES NUTZERS). DEINE ALLERLETZTE ANTWORT MUSS EINE ABSCHLIESSENDE BEMERKUNG SEIN UND DARF KEINE FRAGE MEHR ENTHALTEN. ZUM BEISPIEL: "Perfekt, das reicht mir schon. Ich suche jetzt das passende Spiel für dich!". Setze NUR in diesem finalen Fall 'conversation_complete' auf true. ANTWORTE IMMER IM FOLGENDEN JSON-FORMAT: { "type": "response", "next_question": "Deine nächste Frage ODER die abschließende Bemerkung.", "conversation_complete": false }`;
 
 const systemPromptExtractor = `
-    You are a data extraction engine for the IGDB API. Your job is to analyze a user's request and categorize their wishes into the correct IGDB fields: 'genres', 'themes', and 'game_modes'.
-    
-    **IGDB Categories & Slugs:**
-    - **genres:** 'role-playing-games-rpg', 'shooter', 'action', 'adventure', 'strategy', 'indie'.
-    - **themes:** 'fantasy', 'science-fiction', 'horror', 'comedy', 'historical', 'stealth'.
-    - **game_modes:** 'single-player', 'multiplayer', 'co-operative', 'battle-royale'.
-
-    **Rules:**
-    1.  From the user's request, extract relevant slugs and place them in the correct category array.
-    2.  If the user asks for "Mittelalter", map it to the theme 'fantasy'. If they say "düster", map it to the theme 'horror'. If they want a "AAA Titel", do not add a specific slug, as this is a quality descriptor we sort by later.
-    3.  Output ONLY a valid JSON object: { "genres": ["slug1"], "themes": ["slug2"], "game_modes": ["slug3"] }
+    You are a data extraction engine for IGDB.
+    **RULES:**
+    1.  Identify the **ONE SINGLE MOST IMPORTANT genre** (e.g., 'role-playing-games-rpg', 'shooter', 'adventure').
+    2.  Identify a **category** if mentioned: 'indie' or 'aaa'. If the user doesn't specify, this can be null.
+    3.  Identify all other descriptors as **themes** (e.g., 'fantasy', 'sci-fi', 'horror', 'action', 'single-player').
+    4.  Output ONLY a valid JSON object in the format: { "genre": "THE_SINGLE_GENRE_SLUG", "themes": ["theme1", "theme2"], "category": "indie" }
 `;
 const systemPromptFinal = `
     You are a highly precise recommendation engine. Your ONLY task is to select one single game from the JSON list of candidates provided in the user's prompt. You MUST follow these rules exactly:
@@ -2724,31 +2719,35 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
 }
 async function searchGames(criteria) {
     setLoading(true);
-    // Wir loggen jetzt das ganze Kriterien-Objekt
     console.log(`Starte IGDB-Suche mit Kriterien:`, criteria);
 
     try {
-        const { genres, themes, game_modes } = criteria;
+        const { genre, themes, category } = criteria;
         
-        let whereClauses = ["cover != null", "name != null", "total_rating_count > 10", "version_parent = null"]; 
+        let whereClauses = ["cover != null", "name != null", "total_rating_count > 10", "version_parent = null"];
+        let genresToSearch = [];
 
-        if (genres && genres.length > 0) {
-            whereClauses.push(`genres.slug = ("${genres.join('","')}")`);
+        if (genre) {
+            genresToSearch.push(genre);
+        }
+        // Wenn Indie explizit als Kategorie gewünscht ist, fügen wir es als hartes Genre-Kriterium hinzu.
+        if (category === 'indie') {
+            genresToSearch.push('indie');
+        }
+
+        if (genresToSearch.length > 0) {
+            whereClauses.push(`genres.slug = ("${genresToSearch.join('","')}")`);
         }
         if (themes && themes.length > 0) {
             whereClauses.push(`themes.slug = ("${themes.join('","')}")`);
         }
-        if (game_modes && game_modes.length > 0) {
-            whereClauses.push(`game_modes.slug = ("${game_modes.join('","')}")`);
-        }
         
         const whereString = whereClauses.join(' & ');
-
         const query = `
             fields name, summary, cover.url, genres.name, genres.slug, themes.name, themes.slug, game_modes.name, game_modes.slug;
             where ${whereString};
             sort total_rating_count desc;
-            limit 25;
+            limit 40;
         `;
         
         const response = await fetch('/.netlify/functions/call-igdb', {
@@ -2758,18 +2757,26 @@ async function searchGames(criteria) {
 
         if (!response.ok) throw new Error(`IGDB Netlify function error: ${response.status}`);
         
-        const igdbResults = await response.json();
+        let igdbResults = await response.json();
         
+        if (category === 'indie') {
+            const strictlyIndieGames = igdbResults.filter(game => 
+                game.genres && game.genres.some(g => g.slug === 'indie')
+            );
+            console.log(`Strikte Indie-Filterung angewendet. Reduziert von ${igdbResults.length} auf ${strictlyIndieGames.length} Spiele.`);
+            igdbResults = strictlyIndieGames;
+        }
+
         const formattedGames = igdbResults.map(game => ({
             id: game.id,
             name: game.name,
             background_image: game.cover ? game.cover.url.replace('t_thumb', 't_cover_big') : 'https://placehold.co/600x400',
-            genres: game.genres || [], // Übergeben die vollen Genre-Objekte
+            genres: game.genres || [],
             themes: game.themes || [],
             game_modes: game.game_modes || []
         }));
 
-        console.log(`Finale, bereinigte Liste von IGDB: ${formattedGames.length} einzigartige Spiele.`);
+        console.log(`Finale, geprüfte Liste von IGDB: ${formattedGames.length} einzigartige Spiele.`);
         return formattedGames;
 
     } catch (error) {
@@ -2801,9 +2808,10 @@ async function searchGames(criteria) {
         }
 async function handleTagExtraction(parsedJson) {
     const criteria = parsedJson;
-    if (!criteria || (!criteria.genres && !criteria.themes && !criteria.game_modes)) {
-        renderErrorState("Ich konnte leider keine passenden Suchbegriffe ableiten. Bitte starte eine neue Suche.");
-        return;
+    
+    if (!criteria || !criteria.genre) {
+         renderErrorState("Ich konnte leider kein klares Genre aus deiner Anfrage ableiten. Bitte versuche es noch einmal.");
+         return;
     }
 
     renderSystemMessage(`Suche nach Spielen, die zu deinen Wünschen passen...`);
@@ -2814,39 +2822,23 @@ async function handleTagExtraction(parsedJson) {
         return;
     }
 
-    // WIR (DER CODE) WÄHLEN DAS SPIEL AUS.
     const chosenGame = igdbResults[0];
-    
-    // ======================================================================
-    // NEUE LOGIK: Wir bauen einen Prompt aus Fakten, nicht aus dem Gespräch.
-    // ======================================================================
-
-    // 1. Fakten aus dem gewählten Spiel extrahieren
     const gameFacts = {
         name: chosenGame.name,
-        // Wandle die Genre-, Theme- etc. Objekte in einfache Textlisten um
         genres: chosenGame.genres.map(g => g.name).join(', '),
         themes: chosenGame.themes.map(t => t.name).join(', '),
         game_modes: chosenGame.game_modes.map(m => m.name).join(', ')
     };
 
-    // 2. Einen neuen, faktenbasierten Prompt für die Beschreibung erstellen
     const descriptionPrompt = `
         Write a short, exciting recommendation for the following game based on these facts.
-        
-        Game Name: ${gameFacts.name}
-        Genres: ${gameFacts.genres}
-        Themes/Setting: ${gameFacts.themes}
-        Game Modes: ${gameFacts.game_modes}
-        
-        Based on these facts, create the recommendation text. For example, if the genres are "Action, Adventure", you could say "Wenn du Lust auf ein packendes Abenteuer voller Action hast, ist dieses Spiel genau das Richtige für dich!".
+        Game Name: ${gameFacts.name}, Genres: ${gameFacts.genres}, Themes/Setting: ${gameFacts.themes}, Game Modes: ${gameFacts.game_modes}
+        Based on these facts, create the recommendation text.
     `;
     
-    // 3. Die KI mit den FAKTEN füttern, nicht mit dem GESPRÄCH.
     const descriptionText = await callGeminiAPI(descriptionPrompt, systemPromptDescription, false);
 
     if (descriptionText) {
-        // Wir übergeben unser gewähltes Spiel und den von der KI geschriebenen Text an die Anzeige-Funktion.
         showResult(chosenGame, descriptionText, igdbResults);
     } else {
         renderErrorState("Die KI konnte keine Beschreibung für das Spiel erstellen.");
