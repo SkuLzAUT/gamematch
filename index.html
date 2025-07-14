@@ -3515,12 +3515,10 @@ async function displayUserProfile(userId, filter = 'all') {
             await loadSavedGames(userId, filter, true);
         } catch (e) { console.error("Fehler in loadSavedGames isoliert:", e); }
         
-    /* VORERST DEAKTIVIERT, UM FEHLER ZU VERMEIDEN
+    
         try {
             await displayGamingNews();
         } catch (e) { console.error("Fehler beim Laden der News isoliert:", e); }
-        */
-        // --- TABS AKTIVIEREN ---
         // Dies wird jetzt immer erreicht.
         setupProfileListeners();
         setupProfileTabs();
@@ -4372,42 +4370,50 @@ async function displayGamingNews() {
     container.innerHTML = `<p class="text-gray-400 text-center">${i18next.t('news_loading')}</p>`;
 
     try {
-        const fourteenDaysAgo = Math.floor(Date.now() / 1000) - (14 * 24 * 60 * 60);
-        
-        // KORREKTUR: Ein Semikolon am Ende der Query hinzugefügt
+        // ======================================================================
+        // NEUE, ROBUSTE QUERY: Holt die 5 neuesten, hoch bewerteten Spiele
+        // ======================================================================
+        const threeMonthsAgo = Math.floor(Date.now() / 1000) - (90 * 24 * 60 * 60);
         const query = `
-            fields article.title, article.summary, image, url, pulse_source.name;
-            where published_at > ${fourteenDaysAgo} & article != null;
-            sort popularity desc;
+            fields name, cover.url, first_release_date;
+            where first_release_date > ${threeMonthsAgo} & total_rating_count > 25 & category = 0;
+            sort first_release_date desc;
             limit 5;
-        `; // <--- Das Semikolon hier ist der entscheidende Punkt
+        `;
 
+        // Wir nutzen den stabilen '/games' Endpunkt
         const response = await fetch('/.netlify/functions/call-igdb', {
             method: 'POST',
-            body: JSON.stringify({ endpoint: 'pulses', query: query })
+            body: JSON.stringify({ endpoint: 'games', query: query })
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Fehler beim Abrufen der News: ${errorText}`);
+            throw new Error(`Fehler beim Abrufen der neuen Spiele: ${errorText}`);
         }
-        const newsItems = await response.json();
+        const newGames = await response.json();
 
-        if (newsItems.length === 0) {
+        if (newGames.length === 0) {
             container.innerHTML = `<p class="text-gray-500 text-center">${i18next.t('news_no_posts')}</p>`;
             return;
         }
 
-        let newsHtml = newsItems.map(item => `
-            <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="block bg-gray-900 p-4 rounded-lg hover:bg-gray-800 transition-colors">
-                <p class="font-semibold text-cyan-400 text-sm">${sanitizeHTML(item.pulse_source?.name || 'Quelle')}</p>
-                <h4 class="font-bold text-white mt-1">${sanitizeHTML(item.article?.title || 'Titel nicht verfügbar')}</h4>
-            </a>
-        `).join('');
+        let newsHtml = newGames.map(game => {
+            const releaseDate = new Date(game.first_release_date * 1000).toLocaleDateString('de-DE', { year: 'numeric', month: 'long' });
+            return `
+                <div class="bg-gray-900 p-3 rounded-lg flex items-center gap-4">
+                    <img src="${game.cover.url.replace('t_thumb', 't_cover_big')}" class="w-16 h-20 object-cover rounded">
+                    <div>
+                        <h4 class="font-bold text-white">${sanitizeHTML(game.name)}</h4>
+                        <p class="text-sm text-gray-400">Veröffentlicht: ${releaseDate}</p>
+                    </div>
+                </div>
+            `;
+        }).join('');
 
-        container.innerHTML = newsHtml;
+        container.innerHTML = `<h3 class="text-xl font-bold text-white mb-4">Neueste Top-Spiele</h3>` + newsHtml;
     } catch(e) {
-        console.error("Fehler beim Laden der Gaming-News:", e);
+        console.error("Fehler beim Laden der neuen Spiele:", e);
         container.innerHTML = `<p class="text-red-400 text-center">${i18next.t('news_error')}</p>`;
     }
 }
