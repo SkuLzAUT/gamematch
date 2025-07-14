@@ -336,7 +336,53 @@ main {
                             </div>
                         </dl>
                     </div>
+                    <div id="stats-section" class="py-12 bg-gray-900/50">
+    <div class="container mx-auto px-6 max-w-5xl">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <div>
+                <span id="stat-recommendations" class="font-orbitron text-4xl font-bold text-cyan-400">735</span>
+                <p class="text-gray-400 mt-2">Spielempfehlungen generiert</p>
+            </div>
+            <div>
+                <span id="stat-members" class="font-orbitron text-4xl font-bold text-cyan-400">0</span>
+                <p class="text-gray-400 mt-2">Community-Mitglieder</p>
+            </div>
+            <div>
+                <span id="stat-rating" class="font-orbitron text-4xl font-bold text-cyan-400">4,5</span>
+                <p class="text-gray-400 mt-2">Durchschnittliche Bewertung</p>
+            </div>
+        </div>
+    </div>
+</div>
 
+<div class="py-24">
+    <div class="container mx-auto px-6 max-w-5xl">
+        <h2 class="text-center font-bold text-white text-fluid-heading">Was unsere Nutzer sagen</h2>
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <p class="text-gray-300">"Ich habe Stunden auf Steam verschwendet. GameMatch hat mir in 2 Minuten ein perfektes Indie-Juwel gefunden. Wahnsinn!"</p>
+                <div class="flex items-center mt-4">
+                    <img src="https://i.pravatar.cc/40?u=sarah" alt="Kamatra" class="w-10 h-10 rounded-full">
+                    <p class="ml-4 font-semibold text-white">Kamatra</p>
+                </div>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <p class="text-gray-300">"Die KI ist erschreckend gut, natürlich hat sie noch Kinderkrankheiten. Endlich mal Empfehlungen, die nicht nur die üblichen Blockbuster sind."</p>
+                <div class="flex items-center mt-4">
+                    <img src="https://i.pravatar.cc/40?u=max" alt="djdonni" class="w-10 h-10 rounded-full">
+                    <p class="ml-4 font-semibold text-white">djdonni</p>
+                </div>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <p class="text-gray-300">"Super Tool, um schnell herauszufinden, worauf man gerade Bock hat. Nutze es mittlerweile fast täglich."</p>
+                <div class="flex items-center mt-4">
+                    <img src="https://i.pravatar.cc/40?u=leon" alt="Zeli" class="w-10 h-10 rounded-full">
+                    <p class="ml-4 font-semibold text-white">Zeli</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
                     <div class="mt-24 bg-gray-900 border border-gray-700 rounded-2xl p-8 text-center">
                         <h3 data-i18n="guest_cta_title" class="font-bold text-white text-fluid-heading"></h3>
                         <p data-i18n="guest_cta_desc" class="mt-4 text-gray-400 max-w-2xl mx-auto"></p>
@@ -4244,6 +4290,42 @@ function generateReferralCode() {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
+}
+// ======================================================================
+// ANIMATION FÜR DIE STATISTIK-ZÄHLER
+// ======================================================================
+function animateValue(obj, start, end, duration, decimals = 0) {
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const value = progress * (end - start) + start;
+        obj.innerHTML = value.toFixed(decimals).replace('.', ','); // Komma für deutsche Darstellung
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
+const statsSection = document.getElementById('stats-section');
+// Prüfen, ob das Element existiert, bevor wir den Observer starten
+if (statsSection) {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            // Animation starten, wenn die Sektion zu 50% sichtbar ist
+            if (entry.isIntersecting) {
+                animateValue(document.getElementById('stat-recommendations'), 0, 1034, 2000);
+                animateValue(document.getElementById('stat-members'), 0, 257, 2000);
+                animateValue(document.getElementById('stat-rating'), 0, 4.7, 2000, 1); // 1 Dezimalstelle
+                
+                // Observer stoppen, damit die Animation nur einmal läuft
+                observer.unobserve(statsSection);
+            }
+        });
+    }, { threshold: 0.5 });
+
+    observer.observe(statsSection);
 }
 </script>
 
