@@ -4372,20 +4372,27 @@ async function displayGamingNews() {
     container.innerHTML = `<p class="text-gray-400 text-center">${i18next.t('news_loading')}</p>`;
 
     try {
-        // APICalypse-Query, um die 5 neuesten, populärsten News-Artikel zu holen
+        // ======================================================================
+        // KORRIGIERTE IGDB-QUERY FÜR NEWS
+        // ======================================================================
+        // Wir fragen jetzt nach dem ganzen 'article'-Objekt und filtern nach Pulses, die ein solches haben.
+        const fourteenDaysAgo = Math.floor(Date.now() / 1000) - (14 * 24 * 60 * 60);
         const query = `
             fields article.title, article.summary, image, url, pulse_source.name;
-            where published_at > ${Math.floor(Date.now() / 1000) - (14 * 24 * 60 * 60)}; // Letzte 14 Tage
+            where published_at > ${fourteenDaysAgo} & article != null;
             sort popularity desc;
             limit 5;
         `;
 
         const response = await fetch('/.netlify/functions/call-igdb', {
             method: 'POST',
-            body: JSON.stringify({ endpoint: 'pulses', query: query }) // Wichtig: anderer Endpunkt!
+            body: JSON.stringify({ endpoint: 'pulses', query: query })
         });
 
-        if (!response.ok) throw new Error('Fehler beim Abrufen der News.');
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Fehler beim Abrufen der News: ${errorText}`);
+        }
         const newsItems = await response.json();
 
         if (newsItems.length === 0) {
@@ -4395,7 +4402,7 @@ async function displayGamingNews() {
 
         let newsHtml = newsItems.map(item => `
             <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="block bg-gray-900 p-4 rounded-lg hover:bg-gray-800 transition-colors">
-                <p class="font-semibold text-cyan-400">${sanitizeHTML(item.pulse_source?.name || 'Quelle')}</p>
+                <p class="font-semibold text-cyan-400 text-sm">${sanitizeHTML(item.pulse_source?.name || 'Quelle')}</p>
                 <h4 class="font-bold text-white mt-1">${sanitizeHTML(item.article?.title || 'Titel nicht verfügbar')}</h4>
             </a>
         `).join('');
