@@ -3441,17 +3441,15 @@ async function displayUserProfile(userId, filter = 'all') {
     const currentUser = auth.currentUser;
     const isOwnProfile = currentUser && currentUser.uid === userId;
     
-    // Tab-Buttons und Inhalte holen
-    const profileTabs = document.getElementById('profile-tabs');
+    // UI-Elemente holen und für Fremdprofile anpassen
     const friendRequestsSection = document.getElementById('friend-requests-section');
-    const mitspielerTabButton = profileTabs.querySelector('[data-target="profile-content-mitspieler"]');
+    const mitspielerTabButton = document.querySelector('[data-target="profile-content-mitspieler"]');
 
-    // UI für andere Profile anpassen
     if (!isOwnProfile) {
-        // Bei Fremdprofilen bestimmte Tabs ausblenden
         if(friendRequestsSection) friendRequestsSection.classList.add('hidden');
         if(mitspielerTabButton) mitspielerTabButton.classList.add('hidden');
     } else {
+        if(friendRequestsSection) friendRequestsSection.classList.remove('hidden');
         if(mitspielerTabButton) mitspielerTabButton.classList.remove('hidden');
     }
 
@@ -3465,7 +3463,7 @@ async function displayUserProfile(userId, filter = 'all') {
 
         const userData = userDoc.data();
         
-        // --- STATS ANZEIGEN (wird jetzt früher ausgeführt) ---
+        // --- Profildaten und Statistiken anzeigen ---
         const level = userData.level || 1;
         document.getElementById('profile-user-rank').textContent = getRankForLevel(level);
         document.getElementById('profile-user-level').textContent = level;
@@ -3482,7 +3480,7 @@ async function displayUserProfile(userId, filter = 'all') {
         document.getElementById('progress-next-level-xp').textContent = i18next.t('profile_xp_until_next_level', { xp: requiredXpForNext, level: level + 1 });
         document.getElementById('progress-bar-fill').style.width = `${Math.min(100, (currentLevelXp / requiredXpForNext) * 100)}%`;
         
-        // --- EMPFEHLUNGSCODE ---
+        // --- Empfehlungscode ---
         const referralContainer = document.getElementById('referral-container');
         if (isOwnProfile && referralContainer) {
             let userReferralCode = userData.referralCode;
@@ -3504,32 +3502,26 @@ async function displayUserProfile(userId, filter = 'all') {
             referralContainer.classList.add('hidden');
         }
 
-        // --- ROBUSTE LADEAUFRUFE ---
-        // Jeder Aufruf ist in einem eigenen try...catch-Block, damit ein Fehler
-        // nicht die gesamte Funktion zum Absturz bringt.
+        // --- Robuste Ladeaufrufe für die Tab-Inhalte ---
         if (isOwnProfile) {
             try {
                 await displayFriendRequests(userId);
                 await displayFriendsList(userId);
-            } catch (e) { console.error("Fehler beim Laden der Freundesdaten isoliert:", e); }
-            
-            try {
-                 await displayGamePoolList(userId);
-            } catch(e) { console.error("Fehler beim Laden des Mitspieler-Pools isoliert:", e); }
-
+                await displayGamePoolList(userId);
+            } catch (e) { console.error("Fehler beim Laden der Freundes- & Mitspielerdaten isoliert:", e); }
         }
         
-        try {
-            await loadSavedGames(userId, filter, true);
-        } catch (e) { console.error("Fehler in loadSavedGames isoliert:", e); }
+        try { await loadSavedGames(userId, filter, true); } 
+        catch (e) { console.error("Fehler in loadSavedGames isoliert:", e); }
         
-        try {
-            await displayGamingNews();
-        } catch (e) { console.error("Fehler beim Laden der News isoliert:", e); }
-
-        setupProfileListeners();
-        setupProfileTabs();
-
+        try { await displayGamingNews(); } 
+        catch (e) { console.error("Fehler beim Laden der News isoliert:", e); }
+        
+        // ======================================================================
+        // KORREKTUR: Fehlende Aufrufe wieder hinzugefügt
+        // ======================================================================
+        setupProfileListeners(); // Rüstet Buttons wie "Profilbild ändern" aus
+        setupProfileTabs();      // Rüstet die Klick-Funktion der Tabs aus
 
     } catch (error) {
         console.error("Schwerwiegender Fehler beim Laden des Profils:", error);
@@ -4359,7 +4351,7 @@ if (statsSection) {
         entries.forEach(entry => {
             // Animation starten, wenn die Sektion zu 50% sichtbar ist
             if (entry.isIntersecting) {
-                animateValue(document.getElementById('stat-recommendations'), 0, 734, 2000);
+                animateValue(document.getElementById('stat-recommendations'), 0, 892, 2000);
                 animateValue(document.getElementById('stat-members'), 0, 25, 2000);
                 animateValue(document.getElementById('stat-rating'), 0, 4.7, 2000, 1); // 1 Dezimalstelle
                 
