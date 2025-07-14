@@ -396,7 +396,8 @@ main {
                     <img id="result-img" src="https://placehold.co/600x400/111827/06B6D4?text=GAME" data-i18n="[alt]matchmaker_alt_game_cover" class="w-full mb-4 rounded-lg" loading="lazy" decoding="async">
                     <h3 id="result-title" class="text-4xl font-bold text-cyan-400">Game Title</h3>
                     <p id="result-description" class="text-lg text-gray-100 mt-4 mb-4"></p>
-                    <a id="result-link" href="#" target="_blank" class="block mt-6 w-full bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-500 transition-colors"></a>
+                    <div id="result-affiliate-links" class="mt-6 flex flex-col sm:flex-row gap-3">
+                </div>
                 </div>
                 <button data-i18n="matchmaker_reset_button" id="reset-quiz" class="mt-8 text-gray-400 hover:text-white underline"></button>
             </div>
@@ -883,6 +884,23 @@ const partners = [
     }
     // Füge hier bei Bedarf weitere Partner hinzu...
 ];
+ const affiliatePartners = [
+        {
+            name: 'G2A',
+            urlTemplate: 'https://www.g2a.com/search?query={{GAME_NAME}}&r=reflink-0a5413ec7b',
+            logo: 'img/affiliates/g2a_logo.png'
+        },
+        {
+            name: 'Instant Gaming',
+            urlTemplate: 'https://www.instant-gaming.com/de/suche/?q={{GAME_NAME}}&igr=gamer-918c25',
+            logo: 'img/affiliates/instant-gaming_logo.png'
+        },
+        {
+            name: 'GAMIVO',
+            urlTemplate: 'https://www.gamivo.com/search/{{GAME_NAME}}?glv=wbrggj3c',
+            logo: 'img/affiliates/gamivo_logo.png'
+        }
+    ];
 const translations = {
   de: {
     translation: {
@@ -3560,40 +3578,50 @@ document.getElementById('game-detail-modal').addEventListener('click', (e) => {
 async function showResult(finalGame, finalDescription, rawgGames) {
     setLoading(false);
     try {
-        // Die Validierung und der Fallback sind nicht mehr nötig,
-        // da wir die Wahl selbst getroffen haben.
-        
-        // Der Rest der Funktion bleibt fast gleich...
         currentGameCandidates = rawgGames.filter(g => g.id !== finalGame.id);
+
+        // Spiel-Informationen anzeigen
+        const resultContainer = ui.resultContainer;
+        resultContainer.querySelector('#result-img').src = finalGame.background_image;
+        resultContainer.querySelector('#result-title').textContent = finalGame.name;
+        resultContainer.querySelector('#result-description').textContent = finalDescription.replace(/"/g, '');
+
+        // --- NEU: AFFILIATE-BUTTONS DYNAMISCH ERSTELLEN ---
+        const affiliateContainer = document.getElementById('result-affiliate-links');
+        if (affiliateContainer) {
+            affiliateContainer.innerHTML = ''; // Leert alte Buttons
+            const encodedGameName = encodeURIComponent(finalGame.name);
+
+            affiliatePartners.forEach(partner => {
+                const partnerUrl = partner.urlTemplate.replace('{{GAME_NAME}}', encodedGameName);
+                const buttonHtml = `
+                    <a href="${partnerUrl}" target="_blank" rel="noopener nofollow"
+                       class="flex-1 bg-gray-700 text-white font-semibold px-4 py-2.5 rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 min-w-[140px]">
+                        <img src="${partner.logo}" alt="${partner.name}" class="h-4">
+                        <span>${partner.name}</span>
+                    </a>
+                `;
+                affiliateContainer.innerHTML += buttonHtml;
+            });
+        }
         
-        ui.resultContainer.querySelector('#result-img').src = finalGame.background_image;
-        ui.resultContainer.querySelector('#result-title').textContent = finalGame.name;
-        // KORREKTUR: Wir verwenden jetzt die direkt übergebene Beschreibung
-        ui.resultContainer.querySelector('#result-description').textContent = finalDescription.replace(/"/g, '');
-
-
-        const gameLinkElement = ui.resultContainer.querySelector('#result-link');
-        const suchTitel = encodeURIComponent(finalGame.name);
-        gameLinkElement.href = `https://www.g2a.com/search?query=${suchTitel}&r=reflink-0a5413ec7b`;
-        gameLinkElement.textContent = i18next.t('matchmaker_find_on_g2a');
-        gameLinkElement.target = "_blank";
-
+        // Like/Dislike-Buttons wie gewohnt anzeigen
         document.getElementById('result-action-container')?.remove();
-
         const actionContainer = document.createElement('div');
         actionContainer.id = 'result-action-container';
-        actionContainer.className = 'mt-6 flex flex-col sm:flex-row gap-4';
+        actionContainer.className = 'mt-8 flex flex-col sm:flex-row gap-4';
         actionContainer.innerHTML = `
             <button id="like-btn" class="w-full bg-green-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-green-500 transition-colors transform hover:scale-105">👍 Gefällt mir</button>
             <button id="dislike-btn" class="w-full bg-red-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-red-500 transition-colors transform hover:scale-105">👎 Nicht mein Fall</button>
         `;
-        ui.resultContainer.appendChild(actionContainer);
+        resultContainer.appendChild(actionContainer);
         
         document.getElementById('like-btn').onclick = () => handleLikeGame(finalGame, finalDescription);
         document.getElementById('dislike-btn').onclick = () => handleDislikeGame(finalGame, finalDescription);
 
+        // UI-Status aktualisieren
         ui.chatWindow.style.display = 'none';
-        ui.resultContainer.classList.remove('hidden');
+        resultContainer.classList.remove('hidden');
         
         if (!auth.currentUser) {
             incrementGuestUsage();
