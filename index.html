@@ -3218,13 +3218,31 @@ async function submitRating(gameId, rating) {
     }
 }
 async function displayUserProfile(userId, filter = 'all') {
-    if (!userId) { return; }
+    if (!userId) {
+        console.error("Keine User-ID zum Anzeigen des Profils übergeben.");
+        return;
+    }
 
     const currentUser = auth.currentUser;
     const isOwnProfile = currentUser && currentUser.uid === userId;
+    
+    // Tab-Buttons und Inhalte holen
+    const profileTabs = document.getElementById('profile-tabs');
+    const friendRequestsSection = document.getElementById('friend-requests-section');
+    const mitspielerTabButton = profileTabs.querySelector('[data-target="profile-content-mitspieler"]');
+
+    // UI für andere Profile anpassen
+    if (!isOwnProfile) {
+        // Bei Fremdprofilen bestimmte Tabs ausblenden
+        if(friendRequestsSection) friendRequestsSection.classList.add('hidden');
+        if(mitspielerTabButton) mitspielerTabButton.classList.add('hidden');
+    } else {
+        if(mitspielerTabButton) mitspielerTabButton.classList.remove('hidden');
+    }
 
     try {
-        const userDoc = await db.collection("users").doc(userId).get();
+        const userRef = db.collection("users").doc(userId);
+        const userDoc = await userRef.get();
         if (!userDoc.exists) {
             document.getElementById('profile-content-stats').innerHTML = `<p class="text-center text-red-400">${i18next.t('profile_user_not_found')}</p>`;
             return;
@@ -3255,27 +3273,43 @@ async function displayUserProfile(userId, filter = 'all') {
             let userReferralCode = userData.referralCode;
             if (!userReferralCode) {
                 userReferralCode = generateReferralCode();
-                await db.collection("users").doc(userId).update({ referralCode: userReferralCode });
+                await userRef.update({ referralCode: userReferralCode });
             }
             referralContainer.classList.remove('hidden');
             document.getElementById('referral-code').textContent = userReferralCode;
             document.getElementById('referral-count').textContent = userData.referralCount || 0;
+            document.getElementById('copy-referral-code').onclick = () => {
+                navigator.clipboard.writeText(userReferralCode).then(() => {
+                    const button = document.getElementById('copy-referral-code');
+                    button.textContent = "Kopiert!";
+                    setTimeout(() => { button.textContent = "Kopieren"; }, 2000);
+                });
+            };
         } else if (referralContainer) {
             referralContainer.classList.add('hidden');
         }
 
-        // --- KORREKTUR: Robuste Ladeaufrufe ---
+        // --- ROBUSTE LADEAUFRUFE ---
+        // Jeder Aufruf ist in einem eigenen try...catch-Block, damit ein Fehler
+        // nicht die gesamte Funktion zum Absturz bringt.
         if (isOwnProfile) {
             try {
                 await displayFriendRequests(userId);
-            } catch (e) { console.error("Fehler in displayFriendRequests isoliert:", e); }
+                await displayFriendsList(userId);
+            } catch (e) { console.error("Fehler beim Laden der Freundesdaten isoliert:", e); }
+            
+            try {
+                 await displayGamePoolList(userId);
+            } catch(e) { console.error("Fehler beim Laden des Mitspieler-Pools isoliert:", e); }
+
         }
+        
         try {
             await loadSavedGames(userId, filter, true);
         } catch (e) { console.error("Fehler in loadSavedGames isoliert:", e); }
         
         // --- TABS AKTIVIEREN ---
-        // Dies wird jetzt immer erreicht, auch wenn ein Lade-Aufruf fehlschlägt
+        // Dies wird jetzt immer erreicht.
         setupProfileListeners();
         setupProfileTabs();
 
@@ -3331,6 +3365,51 @@ async function displayFriendRequests(userId) {
     } catch (error) {
         console.error("Fehler beim Laden der Freundschaftsanfragen:", error);
         requestsListContainer.innerHTML = `<p class="text-red-400">Anfragen konnten nicht geladen werden.</p>`;
+    }
+}
+async function displayFriendsList(userId) {
+    const friendsListContainer = document.getElementById('friends-list');
+    if (!friendsListContainer) return;
+
+    try {
+        const friendsQuery = db.collection("friendships")
+                                 .where("users", "array-contains", userId)
+                                 .where("status", "==", "accepted");
+        
+        const friendsSnapshot = await friendsQuery.get();
+
+        if (friendsSnapshot.empty) {
+            friendsListContainer.innerHTML = `<p class="text-gray-500 text-sm">${i18next.t('profile_no_friends')}</p>`;
+            return;
+        }
+
+        let friendsHtml = '';
+        for (const doc of friendsSnapshot.docs) {
+            const friendship = doc.data();
+            const friendId = friendship.users.find(id => id !== userId);
+            const friendDoc = await db.collection("users").doc(friendId).get();
+
+            if (friendDoc.exists) {
+                const friendData = friendDoc.data();
+                const safeUsername = sanitizeHTML(friendData.username);
+                friendsHtml += `
+                    <div class="bg-gray-900 p-3 rounded-lg flex items-center justify-between gap-3">
+                        <a href="#profile?user=${friendId}" class="nav-trigger flex items-center gap-3">
+                            <img src="${friendData.avatarUrl || `https://i.pravatar.cc/40?u=${friendId}`}" class="w-10 h-10 rounded-full object-cover">
+                            <span class="font-semibold text-white hover:text-cyan-400">${safeUsername}</span>
+                        </a>
+                        <div class="flex gap-2">
+                             <button onclick="openChat('${friendId}', '${escapeJS(friendData.username)}', '${friendData.avatarUrl || ''}')" class="bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-blue-500">${i18next.t('profile_games_chat')}</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        friendsListContainer.innerHTML = friendsHtml;
+
+    } catch (error) {
+        console.error("Fehler beim Laden der Freundesliste:", error);
+        friendsListContainer.innerHTML = `<p class="text-red-400">Freundesliste konnte nicht geladen werden.</p>`;
     }
 }
 function escapeJS(str) {
