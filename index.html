@@ -400,16 +400,16 @@ main {
                         </div>
                     </div>
                     
-                    <div class="mx-auto max-w-7xl px-6 lg:px-8 mt-24 sm:mt-32">
-                        <div class="mx-auto max-w-2xl lg:text-center">
-                            <h2 data-i18n="stay_updated" class="text-base font-semibold leading-7 text-cyan-400"></h2>
-                            <p data-i18n="latest_news" class="mt-2 font-bold tracking-tight text-white text-fluid-heading"></p>
-                            <p data-i18n="read_our_posts" class="mt-6 text-lg leading-8 text-gray-400"></p>
-                        </div>
-                        <div id="home-news-list" class="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-12 sm:mt-20 lg:mx-0 lg:max-w-none lg:grid-cols-2">
-                            <p data-i18n="loading_posts" class="text-center text-gray-400 lg:col-span-2"></p>
-                        </div>
-                    </div>
+                    <div id="featured-game-section" class="mt-24 sm:mt-32">
+    <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center mb-8">
+            <h2 class="text-base font-semibold leading-7 text-cyan-400">Spiel des Tages</h2>
+            <p class="mt-2 font-bold tracking-tight text-white text-fluid-heading">Unsere Empfehlung für dich</p>
+        </div>
+        <div id="featured-game-card" class="text-center p-4">
+            </div>
+    </div>
+</div>
         </section>
      <section id="search-users" class="page-section py-12 fade-in">
     <div class="container mx-auto px-6">
@@ -501,6 +501,7 @@ main {
                 <button data-i18n="profile_tab_friends" data-target="profile-content-freunde" class="profile-tab-btn font-semibold pb-3 border-b-2"></button>
                 <button data-i18n="profile_tab_stats" data-target="profile-content-stats" class="profile-tab-btn font-semibold pb-3 border-b-2"></button>
                 <button data-i18n="profile_tab_lfg" data-target="profile-content-mitspieler" class="profile-tab-btn font-semibold pb-3 border-b-2"></button>
+                <button data-i18n="profile_tab_news" data-target="profile-content-news" class="profile-tab-btn font-semibold pb-3 border-b-2"></button>
             </div>
 
             <div id="profile-tab-content-container">
@@ -539,6 +540,8 @@ main {
                 </div>
 
                 <div id="profile-content-stats" class="profile-tab-content text-center active">
+                    <div id="profile-content-news" class="profile-tab-content space-y-4">
+    </div>
                     <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-lg">
                         <div class="bg-gray-900 p-4 rounded-lg text-center">
                             <span class="block font-bold text-2xl text-yellow-400" id="profile-user-rank">...</span>
@@ -3513,6 +3516,10 @@ async function displayUserProfile(userId, filter = 'all') {
             await loadSavedGames(userId, filter, true);
         } catch (e) { console.error("Fehler in loadSavedGames isoliert:", e); }
         
+        try {
+    await displayGamingNews();
+    } catch (e) { console.error("Fehler beim Laden der News isoliert:", e); }
+        
         // --- TABS AKTIVIEREN ---
         // Dies wird jetzt immer erreicht.
         setupProfileListeners();
@@ -4174,6 +4181,11 @@ document.addEventListener('DOMContentLoaded', () => {
             mobileAdminLink: document.getElementById('mobile-admin-link'),
             mobileLogoutBtn: document.getElementById('mobile-logout-btn')
         };
+        if (isLoggedIn && (window.location.hash === '' || window.location.hash === '#home')) {
+        // Wenn der Nutzer eingeloggt ist und sich auf der Startseite befindet,
+        // leite ihn zu seinem Profil weiter.
+        window.location.hash = '#profile';
+    }
         
         // --- Robuste Logik für alle Elemente ---
         // Logged-out Zustand
@@ -4306,6 +4318,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Promise.all([loadTagsFromAPI(), loadGenresFromAPI()]).then(() => {
         console.log("Alle Tags und Genres erfolgreich geladen.");
     });
+    displayFeaturedGame();
     handleNavigation();
     window.addEventListener('hashchange', handleNavigation);
 });
@@ -4352,6 +4365,90 @@ if (statsSection) {
     }, { threshold: 0.5 });
 
     observer.observe(statsSection);
+}
+async function displayGamingNews() {
+    const container = document.getElementById('profile-content-news');
+    if (!container) return;
+    container.innerHTML = `<p class="text-gray-400 text-center">${i18next.t('news_loading')}</p>`;
+
+    try {
+        // APICalypse-Query, um die 5 neuesten, populärsten News-Artikel zu holen
+        const query = `
+            fields article.title, article.summary, image, url, pulse_source.name;
+            where published_at > ${Math.floor(Date.now() / 1000) - (14 * 24 * 60 * 60)}; // Letzte 14 Tage
+            sort popularity desc;
+            limit 5;
+        `;
+
+        const response = await fetch('/.netlify/functions/call-igdb', {
+            method: 'POST',
+            body: JSON.stringify({ endpoint: 'pulses', query: query }) // Wichtig: anderer Endpunkt!
+        });
+
+        if (!response.ok) throw new Error('Fehler beim Abrufen der News.');
+        const newsItems = await response.json();
+
+        if (newsItems.length === 0) {
+            container.innerHTML = `<p class="text-gray-500 text-center">${i18next.t('news_no_posts')}</p>`;
+            return;
+        }
+
+        let newsHtml = newsItems.map(item => `
+            <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="block bg-gray-900 p-4 rounded-lg hover:bg-gray-800 transition-colors">
+                <p class="font-semibold text-cyan-400">${sanitizeHTML(item.pulse_source?.name || 'Quelle')}</p>
+                <h4 class="font-bold text-white mt-1">${sanitizeHTML(item.article?.title || 'Titel nicht verfügbar')}</h4>
+            </a>
+        `).join('');
+
+        container.innerHTML = newsHtml;
+    } catch(e) {
+        console.error("Fehler beim Laden der Gaming-News:", e);
+        container.innerHTML = `<p class="text-red-400 text-center">${i18next.t('news_error')}</p>`;
+    }
+}
+async function displayFeaturedGame() {
+    const container = document.getElementById('featured-game-card');
+    if (!container) return;
+    container.innerHTML = `<p class="text-gray-400">${i18next.t('profile_loading')}</p>`;
+
+    try {
+        // Holt ein zufälliges, hoch bewertetes Spiel
+        const randomOffset = Math.floor(Math.random() * 200);
+        const query = `
+            fields name, cover.url, summary;
+            where total_rating_count > 500 & category = 0 & version_parent = null;
+            sort total_rating_count desc;
+            limit 1;
+            offset ${randomOffset};
+        `;
+
+        const response = await fetch('/.netlify/functions/call-igdb', {
+            method: 'POST',
+            body: JSON.stringify({ query: query })
+        });
+        const games = await response.json();
+        if (!games || games.length === 0) throw new Error("Kein Spiel gefunden.");
+
+        const game = games[0];
+        const imageUrl = game.cover ? game.cover.url.replace('t_thumb', 't_cover_big') : '';
+        
+        container.innerHTML = `
+            <div class="max-w-md mx-auto bg-gray-800 rounded-xl shadow-lg overflow-hidden md:max-w-2xl border border-gray-700">
+              <div class="md:flex">
+                <div class="md:flex-shrink-0">
+                  <img class="h-48 w-full object-cover md:h-full md:w-48" src="${imageUrl}" alt="Cover von ${game.name}">
+                </div>
+                <div class="p-8 text-left">
+                  <h3 class="text-2xl font-bold text-white">${sanitizeHTML(game.name)}</h3>
+                  <p class="mt-2 text-gray-400 line-clamp-4">${sanitizeHTML(game.summary)}</p>
+                </div>
+              </div>
+            </div>
+        `;
+    } catch (e) {
+        console.error("Fehler beim Laden des Spiel des Tages:", e);
+        container.innerHTML = ''; // Bei Fehler einfach ausblenden
+    }
 }
 </script>
 
