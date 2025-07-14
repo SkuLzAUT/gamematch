@@ -3038,7 +3038,8 @@ async function handleLikeGame(gameData, description) {
 
 async function handleDislikeGame(gameData, description) {
     const user = auth.currentUser;
-    if (user && gameData) {
+    if (user) {
+        // Speichere das abgelehnte Spiel im Hintergrund
         await db.collection("users").doc(user.uid).collection("suggestedGames").add({
             title: gameData.name,
             rawgId: gameData.id,
@@ -3049,30 +3050,34 @@ async function handleDislikeGame(gameData, description) {
         });
     }
 
-    if (currentGameCandidates.length > 0) {
+    // Prüfen, ob noch weitere Kandidaten in der Liste sind
+    if (currentGameCandidates && currentGameCandidates.length > 0) {
         renderSystemMessage("Okay, wie wäre es stattdessen hiermit?");
         
-        // Wir erstellen eine detaillierte Liste für die KI, genau wie beim ersten Mal.
-        const gameCandidatesForAI = currentGameCandidates.slice(0, 20).map(game => ({
-            id: game.id,
-            title: game.name,
-            tags: game.tags.map(t => t.slug)
-        }));
-
+        // NEUE LOGIK: Wir nehmen den nächsten Kandidaten aus der Liste
+        const nextGame = currentGameCandidates[0]; // Das nächste Spiel in der Liste
+        
+        // Wir holen uns die originale Konversation für den Kontext.
         const fullConversation = chatHistory.map(entry => entry.parts[0].text).join(' ');
 
-        const finalPrompt = `
-          Basierend auf diesem Gespräch: "${fullConversation}", wähle das absolut beste Spiel aus der folgenden, neuen Liste von Kandidaten.
-          Das vorherige Spiel wurde abgelehnt.
-          Hier sind die verbleibenden Kandidaten:
-          ${JSON.stringify(gameCandidatesForAI, null, 2)}
+        // Wir erstellen einen simplen Prompt, der die KI bittet, nur den Text zu schreiben.
+        const descriptionPrompt = `
+            User request: "${fullConversation}"
+            Chosen Game: "${nextGame.name}"
+            Write the recommendation text now.
         `;
+        
+        // Wir rufen die KI mit dem "Texter"-System-Prompt auf.
+        const newDescription = await callGeminiAPI(descriptionPrompt, systemPromptDescription, false);
 
-        const finalChoiceResponse = await callGeminiAPI(finalPrompt, systemPromptFinal, false);
-        if (finalChoiceResponse) {
-            // Wichtig: Wir übergeben die *verbleibenden* Kandidaten an showResult.
-            handleAIResponse(finalChoiceResponse, (finalJson) => showResult(finalJson, currentGameCandidates));
+        if (newDescription) {
+            // Wir rufen showResult mit den korrekten Daten auf:
+            // Unser gewähltes Spiel, der neue Text und die restlichen Kandidaten.
+            showResult(nextGame, newDescription, currentGameCandidates);
+        } else {
+             renderErrorState("Die KI konnte keine neue Beschreibung erstellen.");
         }
+
     } else {
         renderErrorState("Ich habe leider keine weiteren Vorschläge auf Lager. Lass uns eine neue Suche starten!");
     }
