@@ -2853,24 +2853,20 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
             body: JSON.stringify(payload)
         });
 
-        // KORREKTUR: Robuste Fehlerbehandlung für alle Server-Fehler
         if (!response.ok) {
             let errorMsg = `Server-Fehler: ${response.status}`;
             try {
-                // Versuche, eine detailliertere Fehlermeldung aus dem Body zu lesen
                 const errorData = await response.json();
-                // Prüfe, ob die erwartete Fehlerstruktur von Gemini vorhanden ist
-                if (errorData && errorData.error && typeof errorData.error === 'string') {
-                    if (errorData.error.includes("overloaded")) {
-                        throw new Error("model_overloaded"); // Spezieller Fehler für diesen Fall
-                    }
-                    errorMsg = errorData.error; // Nimm die spezifische Nachricht
-                } else if (errorData && errorData.error && errorData.error.message) {
+                // Die detaillierte Fehlermeldung von Google extrahieren, falls vorhanden
+                if (errorData && errorData.error && errorData.error.message) {
                     errorMsg = errorData.error.message;
                 }
             } catch (e) {
-                // Wenn der Body leer ist (z.B. bei einem 504 Timeout), bleibt es beim allgemeinen Fehler
-                console.log("Antwort vom Server war kein valides JSON.", e);
+                console.log("Antwort vom Server war kein valides JSON, wahrscheinlich ein Timeout.", e);
+                // Bei Timeout eine spezielle Nachricht werfen
+                if (response.status === 504) {
+                    throw new Error("Gateway Timeout");
+                }
             }
             throw new Error(errorMsg);
         }
@@ -2891,14 +2887,12 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
     } catch (error) {
         console.error("API Error:", error);
         
-        // Verbesserte Anzeige für den Nutzer
-        if (error.message === "model_overloaded") {
+        // KORREKTUR: Wir prüfen jetzt mit .includes() auf Teile der Fehlermeldung
+        if (error.message.includes("overloaded")) {
             renderErrorState("Die KI ist im Moment leider überlastet. Bitte versuche es in ein paar Minuten erneut.");
         } else if (error.message.includes("Timeout")) {
-            renderErrorState("Die Anfrage hat zu lange gedauert. Bitte versuche es noch einmal.");
-        }
-        else {
-            // Zeigt die allgemeine Meldung für alle anderen Fehler
+            renderErrorState("Die Anfrage an die KI hat zu lange gedauert. Bitte versuche es erneut.");
+        } else {
             renderErrorState(i18next.t('matchmaker_error_service'));
         }
         return null;
