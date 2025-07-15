@@ -2826,11 +2826,15 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
     setLoading(true);
     const FUNCTION_URL = '/.netlify/functions/call-gemini';
 
-    let localChatHistory = useHistory ? [...chatHistory] : [];
+    // KORREKTUR: Stellt sicher, dass die Konversations-Historie korrekt mitgesendet wird.
+    let localChatHistory = [];
+    if (useHistory && chatHistory.length > 0) {
+        localChatHistory = [...chatHistory];
+    }
     localChatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
     const payload = {
-        contents: localChatHistory,
+        contents: localChatHistory, // Wichtig: Hier wird die Historie übergeben
         systemInstruction: { role: "system", parts: [{ text: systemPrompt }] },
         generationConfig: {
             responseMimeType: "application/json",
@@ -2844,7 +2848,6 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
             body: JSON.stringify(payload)
         });
 
-        // Robuste Fehlerbehandlung für alle Server-Fehler
         if (!response.ok) {
             let errorMsg = `Server-Fehler: ${response.status}`;
             try {
@@ -2866,12 +2869,19 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
             throw new Error("Ungültige API-Antwortstruktur.");
         }
         
-        return result.candidates[0].content.parts[0].text;
+        const aiResponse = result.candidates[0].content.parts[0].text;
+
+        // KORREKTUR: Stellt sicher, dass die neue Antwort zur Historie hinzugefügt wird.
+        if (useHistory) {
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
+        }
+        
+        return aiResponse;
 
     } catch (error) {
         console.error("API Error:", error);
         
-        // Nutzerfreundliche Fehlermeldung anzeigen
         if (error.message.includes("overloaded") || error.message.includes("Timeout")) {
             renderErrorState("Die KI ist im Moment leider überlastet. Bitte versuche es in ein paar Minuten erneut.");
         } else {
