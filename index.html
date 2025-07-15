@@ -2828,14 +2828,23 @@ function renderErrorState(message) {
     ui.userInputArea.innerHTML = '';
     ui.userInputArea.appendChild(errorContainer);
 }
+// Diese neue, kleine Funktion ruft dein OpenAI-Backend auf.
+async function callOpenAIAPI(payload) {
+    console.log("Wechsle zu OpenAI als Backup...");
+    const FUNCTION_URL = '/.netlify/functions/call-openai';
+    const response = await fetch(FUNCTION_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error("OpenAI Fallback hat ebenfalls versagt.");
+    return await response.json();
+}
+
 async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
     setLoading(true);
     const FUNCTION_URL = '/.netlify/functions/call-gemini';
 
-    let localChatHistory = [];
-    if (useHistory && chatHistory.length > 0) {
-        localChatHistory = [...chatHistory];
-    }
+    let localChatHistory = useHistory ? [...chatHistory] : [];
     localChatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
     const payload = {
@@ -2854,48 +2863,24 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
         });
 
         if (!response.ok) {
-            let errorMsg = `Server-Fehler: ${response.status}`;
-            try {
-                const errorData = await response.json();
-                // Die detaillierte Fehlermeldung von Google extrahieren, falls vorhanden
-                if (errorData && errorData.error && errorData.error.message) {
-                    errorMsg = errorData.error.message;
-                }
-            } catch (e) {
-                console.log("Antwort vom Server war kein valides JSON, wahrscheinlich ein Timeout.", e);
-                // Bei Timeout eine spezielle Nachricht werfen
-                if (response.status === 504) {
-                    throw new Error("Gateway Timeout");
-                }
-            }
-            throw new Error(errorMsg);
+            // Wenn Gemini nicht erreichbar ist, werfen wir einen Fehler, um das Fallback auszulösen
+            throw new Error("Gemini service unavailable");
         }
-
-        const result = await response.json();
         
-        if (!result.candidates || !result.candidates[0].content.parts[0].text) {
-            throw new Error("Ungültige API-Antwortstruktur von der Function.");
-        }
-        const aiResponse = result.candidates[0].content.parts[0].text;
-
-        if (useHistory) {
-            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-            chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
-        }
-        return aiResponse;
+        return await response.json(); // Erfolgreiche Gemini-Antwort
 
     } catch (error) {
-        console.error("API Error:", error);
+        console.warn("Gemini API Fehler, versuche Fallback zu OpenAI:", error.message);
         
-        // KORREKTUR: Wir prüfen jetzt mit .includes() auf Teile der Fehlermeldung
-        if (error.message.includes("overloaded")) {
-            renderErrorState("Die KI ist im Moment leider überlastet. Bitte versuche es in ein paar Minuten erneut.");
-        } else if (error.message.includes("Timeout")) {
-            renderErrorState("Die Anfrage an die KI hat zu lange gedauert. Bitte versuche es erneut.");
-        } else {
-            renderErrorState(i18next.t('matchmaker_error_service'));
+        try {
+            // VERSUCHE DAS OPENAI FALLBACK
+            return await callOpenAIAPI(payload);
+        } catch (fallbackError) {
+            console.error("Fallback zu OpenAI ist ebenfalls fehlgeschlagen:", fallbackError);
+            renderErrorState("Beide KI-Dienste sind zurzeit nicht erreichbar. Bitte versuche es später erneut.");
+            return null; // Gebe null zurück, wenn beide fehlschlagen
         }
-        return null;
+
     } finally {
         setLoading(false);
     }
