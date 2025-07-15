@@ -2830,8 +2830,6 @@ function renderErrorState(message) {
 }
 async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
     setLoading(true);
-    
-    // NEU: Die URL zeigt jetzt auf deine eigene Serverless Function
     const FUNCTION_URL = '/.netlify/functions/call-gemini';
 
     let localChatHistory = [];
@@ -2840,7 +2838,6 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
     }
     localChatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
-    // Der Payload bleibt fast gleich, wird aber jetzt an deine Function geschickt
     const payload = {
         contents: localChatHistory,
         systemInstruction: { role: "system", parts: [{ text: systemPrompt }] },
@@ -2857,6 +2854,11 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
         });
 
         if (!response.ok) {
+            // NEUE LOGIK: Wir fangen den Fehler hier ab, um die Nachricht zu analysieren.
+            const errorData = await response.json();
+            if (errorData.error && errorData.error.includes("overloaded")) {
+                throw new Error("model_overloaded"); // Ein spezieller Fehler für diesen Fall
+            }
             throw new Error(`Serverless function error: ${response.status}`);
         }
 
@@ -2875,7 +2877,12 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
 
     } catch (error) {
         console.error("API Error:", error);
-        renderErrorState(i18next.t('matchmaker_error_service'));
+        // NEUE LOGIK: Zeige eine spezifische Nachricht für den Überlastungs-Fall an.
+        if (error.message === "model_overloaded") {
+            renderErrorState("Die KI ist im Moment leider überlastet. Bitte versuche es in ein paar Minuten erneut.");
+        } else {
+            renderErrorState(i18next.t('matchmaker_error_service'));
+        }
         return null;
     } finally {
         setLoading(false);
