@@ -2822,27 +2822,6 @@ function renderErrorState(message) {
     ui.userInputArea.innerHTML = '';
     ui.userInputArea.appendChild(errorContainer);
 }
-async function callOpenAIAPI(payload) {
-    console.log("Wechsle zu OpenAI als Backup...");
-    const FUNCTION_URL = '/.netlify/functions/call-openai';
-    
-    const response = await fetch(FUNCTION_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) throw new Error("OpenAI Fallback hat ebenfalls versagt.");
-    
-    const result = await response.json();
-    
-    if (!result.choices || !result.choices[0].message.content) {
-        throw new Error("Invalid OpenAI API response structure.");
-    }
-    
-    // KORREKTUR: Extrahiere den Text aus der OpenAI-Antwort
-    return result.choices[0].message.content;
-}
-
 async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
     setLoading(true);
     const FUNCTION_URL = '/.netlify/functions/call-gemini';
@@ -2865,26 +2844,40 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error("Gemini service unavailable");
+        // Robuste Fehlerbehandlung für alle Server-Fehler
+        if (!response.ok) {
+            let errorMsg = `Server-Fehler: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                if (errorData && errorData.error && errorData.error.message) {
+                    errorMsg = errorData.error.message;
+                }
+            } catch (e) {
+                if (response.status === 504 || response.status === 503) {
+                    throw new Error("overloaded_or_timeout");
+                }
+            }
+            throw new Error(errorMsg);
+        }
 
         const result = await response.json();
         
         if (!result.candidates || !result.candidates[0].content.parts[0].text) {
-            throw new Error("Invalid Gemini API response structure.");
+            throw new Error("Ungültige API-Antwortstruktur.");
         }
         
-        // KORREKTUR: Gib nur den reinen Text zurück
         return result.candidates[0].content.parts[0].text;
 
     } catch (error) {
-        console.warn("Gemini API Fehler, versuche Fallback zu OpenAI:", error.message);
-        try {
-            return await callOpenAIAPI(payload);
-        } catch (fallbackError) {
-            console.error("Fallback zu OpenAI ist ebenfalls fehlgeschlagen:", fallbackError);
-            renderErrorState("Beide KI-Dienste sind zurzeit nicht erreichbar. Bitte versuche es später erneut.");
-            return null;
+        console.error("API Error:", error);
+        
+        // Nutzerfreundliche Fehlermeldung anzeigen
+        if (error.message.includes("overloaded") || error.message.includes("Timeout")) {
+            renderErrorState("Die KI ist im Moment leider überlastet. Bitte versuche es in ein paar Minuten erneut.");
+        } else {
+            renderErrorState(i18next.t('matchmaker_error_service'));
         }
+        return null;
     } finally {
         setLoading(false);
     }
