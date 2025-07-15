@@ -2681,17 +2681,11 @@ function setupCommunityTabs() {
 
 function handleAIResponse(responseText, nextStepHandler) {
     try {
-        const jsonMatch = responseText.match(/{[\s\S]*}/);
-        if (!jsonMatch) {
-            throw new Error("Kein gültiges JSON-Objekt in der KI-Antwort gefunden.");
-        }
-        
-        const cleanedJsonString = jsonMatch[0];
-        const parsedJson = JSON.parse(cleanedJsonString);
+        // Die Funktion erwartet jetzt direkt den JSON-Text, kein komplexes Objekt mehr
+        const parsedJson = JSON.parse(responseText);
         nextStepHandler(parsedJson);
-
     } catch (e) {
-        console.error("Parsing fehlgeschlagen:", e.message, "Original:", responseText);
+        console.error("Parsing fehlgeschlagen:", e.message, "Original-Text:", responseText);
         renderErrorState("Fehler bei der Verarbeitung der KI-Antwort. Bitte versuche es erneut.");
     }
 }
@@ -2828,16 +2822,25 @@ function renderErrorState(message) {
     ui.userInputArea.innerHTML = '';
     ui.userInputArea.appendChild(errorContainer);
 }
-// Diese neue, kleine Funktion ruft dein OpenAI-Backend auf.
 async function callOpenAIAPI(payload) {
     console.log("Wechsle zu OpenAI als Backup...");
     const FUNCTION_URL = '/.netlify/functions/call-openai';
+    
     const response = await fetch(FUNCTION_URL, {
         method: 'POST',
         body: JSON.stringify(payload)
     });
+
     if (!response.ok) throw new Error("OpenAI Fallback hat ebenfalls versagt.");
-    return await response.json();
+    
+    const result = await response.json();
+    
+    if (!result.choices || !result.choices[0].message.content) {
+        throw new Error("Invalid OpenAI API response structure.");
+    }
+    
+    // KORREKTUR: Extrahiere den Text aus der OpenAI-Antwort
+    return result.choices[0].message.content;
 }
 
 async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
@@ -2862,25 +2865,26 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) {
-            // Wenn Gemini nicht erreichbar ist, werfen wir einen Fehler, um das Fallback auszulösen
-            throw new Error("Gemini service unavailable");
+        if (!response.ok) throw new Error("Gemini service unavailable");
+
+        const result = await response.json();
+        
+        if (!result.candidates || !result.candidates[0].content.parts[0].text) {
+            throw new Error("Invalid Gemini API response structure.");
         }
         
-        return await response.json(); // Erfolgreiche Gemini-Antwort
+        // KORREKTUR: Gib nur den reinen Text zurück
+        return result.candidates[0].content.parts[0].text;
 
     } catch (error) {
         console.warn("Gemini API Fehler, versuche Fallback zu OpenAI:", error.message);
-        
         try {
-            // VERSUCHE DAS OPENAI FALLBACK
             return await callOpenAIAPI(payload);
         } catch (fallbackError) {
             console.error("Fallback zu OpenAI ist ebenfalls fehlgeschlagen:", fallbackError);
             renderErrorState("Beide KI-Dienste sind zurzeit nicht erreichbar. Bitte versuche es später erneut.");
-            return null; // Gebe null zurück, wenn beide fehlschlagen
+            return null;
         }
-
     } finally {
         setLoading(false);
     }
