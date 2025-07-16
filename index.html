@@ -2925,17 +2925,15 @@ async function handleNavigation() {
     if (targetPageId === '#admin') {
         const user = auth.currentUser;
         if (!user) {
-            window.location.hash = '#home'; // Nicht eingeloggt -> zur Startseite
+            window.location.hash = '#home';
             return;
         }
-        // Überprüfe die Admin-Rolle aus der Datenbank
         const userDoc = await db.collection('users').doc(user.uid).get();
         if (!userDoc.data()?.isAdmin) {
             alert("Zugriff verweigert.");
-            window.location.hash = '#home'; // Kein Admin -> zur Startseite
+            window.location.hash = '#home';
             return;
         }
-        // Wenn der Check erfolgreich ist, lade die Admin-Daten
         displayUserManagement();
         displayBlogManagement();
     }
@@ -2945,12 +2943,17 @@ async function handleNavigation() {
         displayNews();
     }
 
-    // NEU: Lade die Partner-Seite
+    // Lade die Partner-Seite
     if (targetPageId === '#partners') {
         displayPartners();
     }
 
-    // Dieser Teil steuert die allgemeine Seitennavigation und blendet die richtige Sektion ein
+    // KORREKTUR: Der Aufruf für das Datenschutz-Akkordeon ist jetzt an der richtigen Stelle
+    if (targetPageId === '#datenschutz') {
+        setupPrivacyPolicyAccordion();
+    }
+
+    // Dieser Teil steuert die allgemeine Seitennavigation
     showPage(targetPageId);
 
     // Spezifische Logik für bestimmte Seiten nach dem Anzeigen ausführen
@@ -2975,13 +2978,8 @@ async function handleNavigation() {
         } else if (auth.currentUser) {
             displayUserProfile(auth.currentUser.uid); 
         } else {
-            // Wenn kein Nutzer eingeloggt ist und kein Profil angefragt wird,
-            // leite zur Startseite um.
             window.location.hash = '#home';
         }
-        if (targetPageId === '#datenschutz') {
-        setupPrivacyPolicyAccordion();
-    }
     }
 }
 function renderErrorState(message) {
@@ -4662,64 +4660,84 @@ async function displayFeaturedGame() {
 }
 function setupPrivacyPolicyAccordion() {
     const container = document.getElementById('privacy-content');
+    // Bricht ab, wenn der Code schon einmal ausgeführt wurde
     if (!container || container.dataset.accordionInitialized) return;
 
-    const h2s = Array.from(container.querySelectorAll('h2'));
-    const contentToWrap = Array.from(container.children).filter(el => el.tagName !== 'H1' && el.tagName !== 'H2');
+    const originalElements = Array.from(container.children);
+    const mainTitle = originalElements.find(el => el.tagName === 'H1');
+    const h2s = originalElements.filter(el => el.tagName === 'H2');
 
+    // Leere den Container, behalte nur den Titel
+    container.innerHTML = '';
+    if (mainTitle) {
+        container.appendChild(mainTitle.cloneNode(true));
+    }
+
+    // Baue das Akkordeon
     h2s.forEach(h2 => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'accordion-item';
 
         const button = document.createElement('button');
         button.className = 'accordion-header';
-
-        const icon = document.createElement('span');
-        icon.className = 'accordion-icon';
-        icon.innerHTML = '&#43;'; // Plus-Zeichen
+        button.innerHTML = `
+            <span>${h2.innerHTML}</span>
+            <span class="accordion-icon">&#43;</span>
+        `;
         
-        button.textContent = h2.textContent;
-        button.appendChild(icon);
-
         const contentDiv = document.createElement('div');
         contentDiv.className = 'accordion-content';
+        const contentInnerDiv = document.createElement('div');
+        contentInnerDiv.className = 'accordion-content-inner';
 
-        let nextElement = h2.nextElementSibling;
-        while (nextElement && nextElement.tagName !== 'H2') {
-            contentDiv.appendChild(nextElement.cloneNode(true));
-            nextElement = nextElement.nextElementSibling;
+        // Finde alle Elemente zwischen diesem h2 und dem nächsten
+        let currentIndex = originalElements.indexOf(h2);
+        let nextIndex = originalElements.findIndex((el, i) => i > currentIndex && el.tagName === 'H2');
+        if (nextIndex === -1) nextIndex = originalElements.length;
+
+        for (let i = currentIndex + 1; i < nextIndex; i++) {
+            contentInnerDiv.appendChild(originalElements[i].cloneNode(true));
         }
-
+        
+        contentDiv.appendChild(contentInnerDiv);
         itemDiv.appendChild(button);
         itemDiv.appendChild(contentDiv);
         container.appendChild(itemDiv);
 
+        // Klick-Funktion hinzufügen
         button.addEventListener('click', () => {
-            const isOpen = contentDiv.classList.contains('open');
-            // Alle anderen schließen
-            container.querySelectorAll('.accordion-content.open').forEach(openContent => {
-                openContent.classList.remove('open');
-                openContent.style.maxHeight = '0px';
-                openContent.previousElementSibling.querySelector('.accordion-icon').style.transform = 'rotate(0deg)';
-                openContent.previousElementSibling.classList.remove('active');
-            });
+            const isActive = button.classList.contains('active');
             
-            // Aktuellen umschalten
-            if (!isOpen) {
-                contentDiv.classList.add('open');
+            // Schließe alle anderen offenen Tabs
+            container.querySelectorAll('.accordion-header.active').forEach(activeButton => {
+                if (activeButton !== button) {
+                    activeButton.classList.remove('active');
+                    activeButton.nextElementSibling.style.maxHeight = null;
+                    activeButton.querySelector('.accordion-icon').style.transform = 'rotate(0deg)';
+                }
+            });
+
+            // Öffne oder schließe den aktuellen Tab
+            if (!isActive) {
+                button.classList.add('active');
                 contentDiv.style.maxHeight = contentDiv.scrollHeight + "px";
                 button.querySelector('.accordion-icon').style.transform = 'rotate(45deg)';
-                button.classList.add('active');
-}
+            } else {
+                button.classList.remove('active');
+                contentDiv.style.maxHeight = null;
+                button.querySelector('.accordion-icon').style.transform = 'rotate(0deg)';
+            }
         });
     });
-
+    
+    container.dataset.accordionInitialized = 'true';
+}
     // Entferne die ursprünglichen, nun duplizierten Elemente
     contentToWrap.forEach(el => el.remove());
     h2s.forEach(h2 => h2.remove());
 
     container.dataset.accordionInitialized = 'true';
-}
+    
 </script>
 
 </body>
