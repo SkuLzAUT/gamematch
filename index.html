@@ -2896,87 +2896,94 @@ async function searchGames(criteria) {
     setLoading(true);
     console.log(`Starte gestaffelte IGDB-Suche mit Kriterien:`, criteria);
 
-    const { genre, themes, category } = criteria;
+    try {
+        const { genre, themes, category } = criteria;
 
-    // Eine kleine Hilfsfunktion, um die Suchanfrage zu bauen
-    const buildQuery = (searchGenre, searchThemes) => {
-        let whereClauses = ["cover != null", "name != null", "total_rating_count > 10", "version_parent = null", "category = 0"]; // category 0 = Hauptspiel
+        // Eine Hilfsfunktion, um die Suchanfrage zu bauen.
+        const buildQuery = (searchGenre, searchThemes) => {
+            // Basisanforderungen, die jedes Spiel erfüllen muss
+            let whereClauses = ["cover != null", "name != null", "total_rating_count > 10", "version_parent = null", "category = 0"];
+            let genresToSearch = [];
 
-        let genresToSearch = [];
-        if (searchGenre) {
-            genresToSearch.push(searchGenre);
+            if (searchGenre) {
+                genresToSearch.push(searchGenre);
+            }
+            // Wenn "Indie" explizit gewünscht ist, wird es zur Genre-Suche hinzugefügt.
+            if (category === 'indie') {
+                genresToSearch.push('indie');
+            }
+
+            if (genresToSearch.length > 0) {
+                whereClauses.push(`genres.slug = ("${genresToSearch.join('","')}")`);
+            }
+            
+            // Flexible "ODER"-Suche für Themen
+            if (searchThemes && searchThemes.length > 0) {
+                const themeClauses = searchThemes.map(t => `themes.slug = "${t}"`);
+                whereClauses.push(`(${themeClauses.join(' | ')})`);
+            }
+            
+            const whereString = whereClauses.join(' & ');
+            return `fields name, summary, cover.url, genres.name, genres.slug, themes.name, themes.slug, game_modes.name, game_modes.slug; where ${whereString}; sort total_rating_count desc; limit 40;`;
+        };
+
+        // Hilfsfunktion zum Ausführen der Anfrage
+        const runQuery = async (query) => {
+            const response = await fetch('/.netlify/functions/call-igdb', { method: 'POST', body: JSON.stringify({ query }) });
+            if (!response.ok) return [];
+            return await response.json();
+        };
+
+        let igdbResults = [];
+
+        // --- GESTAFFELTE "WASSERFALL"-SUCHE ---
+
+        // VERSUCH 1: Perfekte, spezifische Suche (Genre + Themen)
+        console.log("Versuch 1: Suche mit Genre und Themen.");
+        if (genre || (themes && themes.length > 0)) {
+            igdbResults = await runQuery(buildQuery(genre, themes));
         }
+
+        // VERSUCH 2: Nur mit dem Hauptgenre suchen, wenn Versuch 1 fehlschlägt.
+        if (igdbResults.length === 0 && genre) {
+            console.log("Versuch 1 fehlgeschlagen. Starte Versuch 2: Suche nur mit dem wichtigsten Genre.");
+            igdbResults = await runQuery(buildQuery(genre, null));
+        }
+        
+        // VERSUCH 3: Nur mit Themen suchen, wenn alles andere fehlschlägt.
+        if (igdbResults.length === 0 && themes && themes.length > 0) {
+            console.log("Versuch 2 fehlgeschlagen. Starte Versuch 3 als Notfall: Suche nur mit Themen.");
+            igdbResults = await runQuery(buildQuery(null, themes));
+        }
+        
+        // --- DER "UNBESTECHLICHE TÜRSTEHER" ---
+        // Finale Überprüfung, falls nach "Indie" gefragt wurde.
         if (category === 'indie') {
-            genresToSearch.push('indie');
+            const strictlyIndieGames = igdbResults.filter(game => game.genres && game.genres.some(g => g.slug === 'indie'));
+            console.log(`Strikte Indie-Filterung angewendet. Reduziert von ${igdbResults.length} auf ${strictlyIndieGames.length} Spiele.`);
+            igdbResults = strictlyIndieGames;
         }
 
-        if (genresToSearch.length > 0) {
-            whereClauses.push(`genres.slug = ("${genresToSearch.join('","')}")`);
-        }
-        
-        if (searchThemes && searchThemes.length > 0) {
-            const themeClauses = searchThemes.map(t => `themes.slug = "${t}"`);
-            whereClauses.push(`(${themeClauses.join(' | ')})`);
-        }
-        
-        const whereString = whereClauses.join(' & ');
-        return `
-            fields name, summary, cover.url, genres.name, genres.slug, themes.name, themes.slug, game_modes.name, game_modes.slug;
-            where ${whereString};
-            sort total_rating_count desc;
-            limit 40;
-        `;
-    };
+        // --- Formatierung für den Rest der App ---
+        const formattedGames = igdbResults.map(game => ({
+            id: game.id,
+            name: game.name,
+            background_image: game.cover ? game.cover.url.replace('t_thumb', 't_cover_big') : 'https://placehold.co/600x400',
+            genres: game.genres || [],
+            themes: game.themes || [],
+            game_modes: game.game_modes || []
+        }));
 
-    // Hilfsfunktion zum Ausführen der Anfrage
-    const runQuery = async (query) => {
-        const response = await fetch('/.netlify/functions/call-igdb', {
-            method: 'POST',
-            body: JSON.stringify({ query })
-        });
-        if (!response.ok) return [];
-        return await response.json();
-    };
+        console.log(`Finale, geprüfte Liste von IGDB: ${formattedGames.length} einzigartige Spiele.`);
+        return formattedGames;
 
-    let igdbResults = [];
-
-    // --- VERSUCH 1: Perfekte Suche (Genre + Themen) ---
-    console.log("Versuch 1: Suche mit Genre und allen Themen.");
-    const query1 = buildQuery(genre, themes);
-    igdbResults = await runQuery(query1);
-
-    // --- VERSUCH 2: Breite Suche (Nur Genre), wenn Versuch 1 fehlschlägt ---
-    if (igdbResults.length === 0 && genre) {
-        console.log("Versuch 1 fehlgeschlagen. Starte Versuch 2: Suche nur mit Genre.");
-        const query2 = buildQuery(genre, null);
-        igdbResults = await runQuery(query2);
+    } catch (error) {
+        console.error("Fehler bei der IGDB Spielesuche:", error);
+        renderErrorState("Fehler bei der Spielesuche. Bitte versuche es später erneut.");
+        return [];
+    } finally {
+        setLoading(false);
     }
-    
-    // --- VERSUCH 3: Allerletzte Suche (Nur Themen), wenn Versuch 2 fehlschlägt ---
-    if (igdbResults.length === 0 && themes && themes.length > 0) {
-        console.log("Versuch 2 fehlgeschlagen. Starte Versuch 3: Suche nur mit Themen.");
-        const query3 = buildQuery(null, themes);
-        igdbResults = await runQuery(query3);
-    }
-    
-    // Ab hier bleibt der Rest der Funktion gleich (Filterung, Formatierung etc.)
-    if (category === 'indie') {
-        const strictlyIndieGames = igdbResults.filter(game => game.genres && game.genres.some(g => g.slug === 'indie'));
-        console.log(`Strikte Indie-Filterung angewendet. Reduziert von ${igdbResults.length} auf ${strictlyIndieGames.length} Spiele.`);
-        igdbResults = strictlyIndieGames;
-    }
-
-    const formattedGames = igdbResults.map(game => ({
-        id: game.id,
-        name: game.name,
-        background_image: game.cover ? game.cover.url.replace('t_thumb', 't_cover_big') : 'https://placehold.co/600x400',
-        genres: game.genres || [],
-        themes: game.themes || [],
-        game_modes: game.game_modes || []
-    }));
-
-    console.log(`Finale, geprüfte Liste von IGDB: ${formattedGames.length} einzigartige Spiele.`);
-    return formattedGames;
 }
        async function extractTagsAndSearch() {
           const user = auth.currentUser;
