@@ -187,6 +187,93 @@ main {
       text-align: center;
     }
 }
+/* ========================================================== */
+/* NEUE STILE FÜR DAS DATENSCHUTZ-AKKORDEON                    */
+/* ========================================================== */
+#privacy-content h1 {
+    font-size: 2.25rem; /* 36px */
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+#privacy-content .accordion-item {
+    border-bottom: 1px solid var(--bg-light);
+}
+
+#privacy-content .accordion-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 0.5rem;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-size: 1.125rem; /* 18px */
+    font-weight: 600;
+    color: var(--text-light);
+    transition: background-color 0.2s ease;
+}
+
+#privacy-content .accordion-header:hover {
+    color: var(--accent-cyan);
+}
+
+#privacy-content .accordion-header .accordion-icon {
+    font-size: 1.5rem;
+    color: var(--text-dark);
+    transition: transform 0.3s ease;
+}
+
+#privacy-content .accordion-header.active .accordion-icon {
+    transform: rotate(45deg);
+}
+
+#privacy-content .accordion-content {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+    padding: 0 1rem;
+}
+
+#privacy-content .accordion-content.open {
+    /* max-height wird per JS gesetzt, wir brauchen nur das Padding */
+    padding: 1.5rem 1rem;
+}
+
+/* Styling für die Inhalte innerhalb des Akkordeons */
+#privacy-content .accordion-content h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-light);
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+#privacy-content .accordion-content p, 
+#privacy-content .accordion-content li {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+}
+#privacy-content .accordion-content ul {
+    list-style-position: inside;
+    padding-left: 0.5rem;
+}
+
+#privacy-content .accordion-content a {
+    color: var(--accent-cyan);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: text-decoration-color 0.2s;
+}
+
+#privacy-content .accordion-content a:hover {
+    text-decoration-color: var(--accent-cyan);
+}
     </style>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9925570056243594"
      crossorigin="anonymous"></script>
@@ -4578,45 +4665,58 @@ function setupPrivacyPolicyAccordion() {
     if (!container || container.dataset.accordionInitialized) return;
 
     const h2s = Array.from(container.querySelectorAll('h2'));
-    
+    const contentToWrap = Array.from(container.children).filter(el => el.tagName !== 'H1' && el.tagName !== 'H2');
+
     h2s.forEach(h2 => {
-        // Erstelle den Button, der die Überschrift enthalten wird
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'accordion-item';
+
         const button = document.createElement('button');
-        button.className = 'w-full flex justify-between items-center text-left py-4 px-5 bg-gray-800 hover:bg-gray-700/50 rounded-lg text-xl font-bold text-white transition-colors';
-        
-        // Erstelle das Icon (ein "Plus"-Zeichen)
+        button.className = 'accordion-header';
+
         const icon = document.createElement('span');
-        icon.className = 'text-cyan-400 text-2xl transition-transform duration-300';
-        icon.innerHTML = '+';
+        icon.className = 'accordion-icon';
+        icon.innerHTML = '&#43;'; // Plus-Zeichen
         
-        // Verschiebe den h2-Text in den Button
         button.textContent = h2.textContent;
         button.appendChild(icon);
-        
-        // Erstelle den Container für den ausklappbaren Inhalt
-        const content = document.createElement('div');
-        content.className = 'accordion-content overflow-hidden max-h-0 transition-all duration-500 ease-in-out';
-        content.style.maxHeight = '0px'; // Anfangs geschlossen
 
-        // Finde alle Elemente zwischen diesem h2 und dem nächsten h2 und verschiebe sie
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'accordion-content';
+
         let nextElement = h2.nextElementSibling;
         while (nextElement && nextElement.tagName !== 'H2') {
-            content.appendChild(nextElement);
-            nextElement = h2.nextElementSibling;
+            contentDiv.appendChild(nextElement.cloneNode(true));
+            nextElement = nextElement.nextElementSibling;
         }
-        
-        // Ersetze das originale h2-Element durch unseren neuen Button
-        h2.parentNode.replaceChild(button, h2);
-        // Füge den Inhalts-Container direkt nach dem Button ein
-        button.parentNode.insertBefore(content, button.nextSibling);
 
-        // Füge die Klick-Funktion hinzu
+        itemDiv.appendChild(button);
+        itemDiv.appendChild(contentDiv);
+        container.appendChild(itemDiv);
+
         button.addEventListener('click', () => {
-            const isOpen = content.style.maxHeight !== '0px';
-            content.style.maxHeight = isOpen ? '0px' : `${content.scrollHeight}px`;
-            icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(45deg)';
+            const isOpen = contentDiv.classList.contains('open');
+            // Alle anderen schließen
+            container.querySelectorAll('.accordion-content.open').forEach(openContent => {
+                openContent.classList.remove('open');
+                openContent.style.maxHeight = '0px';
+                openContent.previousElementSibling.querySelector('.accordion-icon').style.transform = 'rotate(0deg)';
+                openContent.previousElementSibling.classList.remove('active');
+            });
+            
+            // Aktuellen umschalten
+            if (!isOpen) {
+                contentDiv.classList.add('open');
+                contentDiv.style.maxHeight = contentDiv.scrollHeight + "px";
+                button.querySelector('.accordion-icon').style.transform = 'rotate(45deg)';
+                button.classList.add('active');
+}
         });
     });
+
+    // Entferne die ursprünglichen, nun duplizierten Elemente
+    contentToWrap.forEach(el => el.remove());
+    h2s.forEach(h2 => h2.remove());
 
     container.dataset.accordionInitialized = 'true';
 }
