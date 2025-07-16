@@ -2892,6 +2892,9 @@ async function handleNavigation() {
             // leite zur Startseite um.
             window.location.hash = '#home';
         }
+        if (targetPageId === '#datenschutz') {
+        setupPrivacyPolicyAccordion();
+    }
     }
 }
 function renderErrorState(message) {
@@ -4569,6 +4572,53 @@ async function displayFeaturedGame() {
         console.error("Fehler beim Laden des Spiel des Tages:", e);
         container.innerHTML = ''; // Bei Fehler einfach ausblenden
     }
+}
+function setupPrivacyPolicyAccordion() {
+    const container = document.getElementById('privacy-content');
+    if (!container || container.dataset.accordionInitialized) return;
+
+    const h2s = Array.from(container.querySelectorAll('h2'));
+    
+    h2s.forEach(h2 => {
+        // Erstelle den Button, der die Überschrift enthalten wird
+        const button = document.createElement('button');
+        button.className = 'w-full flex justify-between items-center text-left py-4 px-5 bg-gray-800 hover:bg-gray-700/50 rounded-lg text-xl font-bold text-white transition-colors';
+        
+        // Erstelle das Icon (ein "Plus"-Zeichen)
+        const icon = document.createElement('span');
+        icon.className = 'text-cyan-400 text-2xl transition-transform duration-300';
+        icon.innerHTML = '+';
+        
+        // Verschiebe den h2-Text in den Button
+        button.textContent = h2.textContent;
+        button.appendChild(icon);
+        
+        // Erstelle den Container für den ausklappbaren Inhalt
+        const content = document.createElement('div');
+        content.className = 'accordion-content overflow-hidden max-h-0 transition-all duration-500 ease-in-out';
+        content.style.maxHeight = '0px'; // Anfangs geschlossen
+
+        // Finde alle Elemente zwischen diesem h2 und dem nächsten h2 und verschiebe sie
+        let nextElement = h2.nextElementSibling;
+        while (nextElement && nextElement.tagName !== 'H2') {
+            content.appendChild(nextElement);
+            nextElement = h2.nextElementSibling;
+        }
+        
+        // Ersetze das originale h2-Element durch unseren neuen Button
+        h2.parentNode.replaceChild(button, h2);
+        // Füge den Inhalts-Container direkt nach dem Button ein
+        button.parentNode.insertBefore(content, button.nextSibling);
+
+        // Füge die Klick-Funktion hinzu
+        button.addEventListener('click', () => {
+            const isOpen = content.style.maxHeight !== '0px';
+            content.style.maxHeight = isOpen ? '0px' : `${content.scrollHeight}px`;
+            icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(45deg)';
+        });
+    });
+
+    container.dataset.accordionInitialized = 'true';
 }
 </script>
 
