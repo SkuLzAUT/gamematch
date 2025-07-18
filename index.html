@@ -1925,30 +1925,16 @@ i18next.on('languageChanged', () => {
     
 const systemPromptConversation = `DU BIST EIN GAME-SCOUT. Dein Ziel ist es, in einem lockeren Gespräch die Wünsche des Nutzers für ein PC-Spiel zu verstehen. STELLE IMMER NUR EINE EINZIGE FRAGE PRO ANTWORT. Frage nach Genre, Stimmung, Spielstil (realistisch, Fantasy etc.) und ob der Nutzer AAA-Titel oder Indie-Spiele bevorzugt. STELLE FRAGEN, BIS DU DIR SICHER BIST, GENUG INFOS ZU HABEN (NORMALERWEISE NACH 2-3 ANTWORTEN DES NUTZERS). DEINE ALLERLETZTE ANTWORT MUSS EINE ABSCHLIESSENDE BEMERKUNG SEIN UND DARF KEINE FRAGE MEHR ENTHALTEN. ZUM BEISPIEL: "Perfekt, das reicht mir schon. Ich suche jetzt das passende Spiel für dich!". Setze NUR in diesem finalen Fall 'conversation_complete' auf true. ANTWORTE IMMER IM FOLGENDEN JSON-FORMAT: { "type": "response", "next_question": "Deine nächste Frage ODER die abschließende Bemerkung.", "conversation_complete": false }`;
 
-const systemPromptExtractor = `
-    You are a data extraction engine for the IGDB API.
-    **RULES:**
-    1.  From the user's request, identify the **ONE SINGLE MOST IMPORTANT genre** that describes the core gameplay (e.g., 'rpg', 'shooter', 'adventure').
-    2.  Identify a **category**: 'indie' or 'aaa'. If not mentioned, this must be null.
-    3.  Identify a **maximum of 2-3 essential themes** that are explicitly mentioned or strongly implied (e.g., 'fantasy', 'horror', 'open-world'). Do NOT add generic themes like 'singleplayer' or 'atmospheric' unless they are the primary request. Be conservative.
-    4.  Output ONLY a valid JSON object in the format: { "genre": "THE_SINGLE_GENRE_SLUG", "themes": ["theme1"], "category": "indie" }
-`;
 const systemPromptFinal = `
-    You are a highly precise recommendation engine. Your ONLY task is to select one single game from the JSON list of candidates provided in the user's prompt. You MUST follow these rules exactly:
+    You are a highly precise game recommendation engine. Your ONLY task is to analyze the user's conversation and select the single best game from the JSON list of candidates provided in the prompt.
 
     **CRITICAL RULES:**
+    1.  **MANDATORY SELECTION FROM LIST:** You are absolutely forbidden to suggest any game that is NOT in the provided candidate list. You MUST choose one from the list by its ID.
+    2.  **HOLISTIC MATCHING:** Read the entire user conversation to understand the desired mood, genre, and type (like AAA or Indie). Then, analyze the 'summary', 'genres', and 'themes' of each candidate game to find the best fit. For example, if the user wants a "düsteres RPG", a game with "Horror" in its themes and "Role-playing (RPG)" in its genres is a strong match.
+    3.  **GERMAN JUSTIFICATION:** Your "description" in the JSON output must be in GERMAN, warm, and speak to the user directly ('Du'/'dir'). It should justify WHY this specific game fits their request from the conversation.
+    4.  **JSON ONLY:** Your entire response must be a single, valid JSON object and nothing more.
 
-    1.  **MANDATORY SELECTION FROM LIST:** You are absolutely forbidden to suggest any game that is NOT in the provided candidate list. You MUST choose one from the list.
-
-    2.  **STRICT TAG ANALYSIS:** Review the user's original request (provided in the prompt). Then, for each game in the candidate list, examine its "tags" array. Select the game whose tags provide the **best and most accurate match** to the user's request.
-
-    3.  **VERIFY THE CORE GENRE:** If the user asked for a "Shooter", you MUST verify that the selected game's tags include "shooter". If the user asked for an "RPG", verify that the tags include "rpg". Do not misclassify genres. For example, "God of War" is NOT a "Shooter".
-
-    4.  **GERMAN JUSTIFICATION:** Your "description" in the JSON output must be in GERMAN and directly address the user ('Du'/'dir').
-
-    5.  **JSON ONLY:** Your entire response must be a single, valid JSON object and nothing more.
-
-    Here is the required JSON structure: { "game": { "id": THE_UNIQUE_ID_FROM_THE_LIST, "description": "YOUR_PERSONAL_REASONING_IN_GERMAN." } }
+    **Required JSON structure:** { "game": { "id": THE_UNIQUE_ID_FROM_THE_CANDIDATE_LIST, "description": "YOUR_PERSONAL_REASONING_IN_GERMAN." } }
 `;
 const systemPromptDescription = `
     You are a creative game journalist. Your task is to write a short, enthusiastic, 2-3 sentence recommendation for a given game, based on provided facts.
@@ -3462,25 +3448,80 @@ async function searchGames(criteria) {
         setLoading(false);
     }
 }
-       async function extractTagsAndSearch() {
-          const user = auth.currentUser;
+async function extractTagsAndSearch() {
+    const user = auth.currentUser;
+    if (!user && getGuestUsage().count >= 2) {
+        renderGuestLimitMessage();
+        return;
+    }
 
-    if (!user) {
-        const usage = getGuestUsage();
-        console.log('Prüfe Limit. Aktueller Stand:', usage.count); // <-- HIER EINFÜGEN
-        if (usage.count >= 2) {
-            renderGuestLimitMessage();
+    renderSystemMessage("Analysiere deine Wünsche und durchsuche die Spieledatenbank...");
+    
+    // Wir holen uns die Essenz des Gesprächs
+    const conversationText = chatHistory.map(entry => entry.parts[0].text).join(' ');
+
+    try {
+        // Wir holen uns eine breite Liste der 100 beliebtesten Spiele als Grundlage.
+        // Das ist unsere Kandidatenliste.
+        const query = `
+            fields name, summary, genres.name, themes.name;
+            sort total_rating_count desc;
+            limit 100;
+            where category = 0 & total_rating_count > 100 & version_parent = null;
+        `;
+        const initialGames = await runIGDBQuery(query);
+
+        if (!initialGames || initialGames.length === 0) {
+            renderErrorState("Konnte keine Basis-Spieleliste von der Datenbank abrufen.");
             return;
         }
-    }
-            renderSystemMessage("Analysiere deine Wünsche...");
-            const conversationText = chatHistory.map(entry => `${entry.role}: ${entry.parts[0].text}`).join('\n');
-            const extractionPrompt = `Analysiere das Gespräch und extrahiere passende Begriffe.\n---\nGESPRÄCH:\n${conversationText}\n---\nVERFÜGBARE TAGS (für Eigenschaften, Mechaniken etc.):\n${availableTags.join(', ')}\n---\nVERFÜGBARE GENRES (für Spielkategorien):\n${availableGenres.join(', ')}\n---\nExtrahiere jetzt die passenden 'tags' und 'genres' als Komma-getrennte Listen.`;
-            const jsonResponseText = await callGeminiAPI(extractionPrompt, systemPromptExtractor, false);
-            if (jsonResponseText) {
-                handleAIResponse(jsonResponseText, handleTagExtraction);
-            }
+
+        // Wir bereiten die Kandidaten für die KI auf (nur die wichtigsten Infos)
+        const gameCandidatesForAI = initialGames.map(g => ({
+            id: g.id,
+            name: g.name,
+            summary: g.summary,
+            genres: g.genres ? g.genres.map(gen => gen.name).join(', ') : '',
+            themes: g.themes ? g.themes.map(th => th.name).join(', ') : ''
+        }));
+        
+        // Der neue, finale Prompt. Er hat nur noch EINE Aufgabe.
+        const finalPrompt = `
+            Based on the following user conversation, select the single best matching game from the provided JSON list of candidates.
+
+            **User Conversation:**
+            "${conversationText}"
+
+            **Candidate Games List:**
+            ${JSON.stringify(gameCandidatesForAI)}
+        `;
+
+        const jsonResponseText = await callGeminiAPI(finalPrompt, systemPromptFinal, false);
+        if (jsonResponseText) {
+            handleAIResponse(jsonResponseText, (parsedJson) => {
+                // Wir finden das von der KI ausgewählte Spiel in unserer Originalliste
+                const chosenGame = initialGames.find(g => g.id === parsedJson.game.id);
+                if (chosenGame) {
+                    showResult(chosenGame, parsedJson.game.description, initialGames);
+                } else {
+                    console.error("KI hat eine ID zurückgegeben, die nicht in der Kandidatenliste war:", parsedJson.game.id);
+                    renderErrorState("Die KI hat einen Fehler gemacht. Bitte versuche eine neue Suche.");
+                }
+            });
         }
+
+    } catch (error) {
+        console.error("Fehler im neuen extractTagsAndSearch-Prozess:", error);
+        renderErrorState("Ein Fehler ist aufgetreten. Bitte versuche es später erneut.");
+    }
+}
+
+// Kleine Hilfsfunktion, um den Code sauber zu halten
+async function runIGDBQuery(query) {
+    const response = await fetch('/.netlify/functions/call-igdb', { method: 'POST', body: JSON.stringify({ query }) });
+    if (!response.ok) return [];
+    return await response.json();
+}
 async function handleTagExtraction(parsedJson) {
     const criteria = parsedJson;
     
