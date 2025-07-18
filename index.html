@@ -1440,6 +1440,42 @@ const partners = [
             logo: 'img/affiliates/gamivo_logo.png'
         }
     ];
+    // ======================================================================
+// DAS NEUE SCORING-SYSTEM
+// ======================================================================
+const keywordScores = {
+    // Kerngenres (höchste Priorität)
+    'role-playing-games-rpg': { points: 5, type: 'genre' },
+    'shooter': { points: 5, type: 'genre' },
+    'adventure': { points: 4, type: 'genre' },
+    'action': { points: 4, type: 'genre' },
+    'strategy': { points: 4, type: 'genre' },
+    'simulation': { points: 4, type: 'genre' },
+    'indie': { points: 3, type: 'genre' }, // Wichtig für die Kategorie
+
+    // Wichtige Themen/Settings
+    'fantasy': { points: 3, type: 'theme' },
+    'sci-fi': { points: 3, type: 'theme' },
+    'science-fiction': { points: 3, type: 'theme' },
+    'horror': { points: 3, type: 'theme' },
+    'open-world': { points: 2, type: 'theme' },
+    'survival': { points: 2, type: 'theme' },
+    'military': { points: 2, type: 'theme' }, // "realistisch" kann hierher mappen
+    
+    // Stimmungen & Modifikatoren
+    'düster': { points: 2, type: 'theme', slugs: ['horror', 'dark-fantasy'] },
+    'entspannt': { points: 2, type: 'theme', slugs: ['relaxing', 'casual'] },
+    'lustig': { points: 2, type: 'theme', slugs: ['comedy'] },
+    'spannend': { points: 2, type: 'theme', slugs: ['action', 'thriller'] },
+    'realistisch': { points: 2, type: 'theme', slugs: ['military', 'modern'] },
+    'fantasievoll': { points: 2, type: 'theme', slugs: ['fantasy'] },
+    'actionreich': { points: 2, type: 'theme', slugs: ['action'] },
+    
+    // Weniger wichtige Modifikatoren
+    'aaa': { points: 1, type: 'category' },
+    'singleplayer': { points: 1, type: 'theme', slugs: ['single-player'] },
+    'multiplayer': { points: 1, type: 'theme', slugs: ['multiplayer', 'co-operative'] }
+};
 const translations = {
   de: {
     translation: {
@@ -3186,7 +3222,7 @@ function renderInteraction({ text, inputType, placeholder, isComplete = false })
         const searchButton = document.createElement('button');
         searchButton.className = 'w-full bg-cyan-500 text-gray-900 font-bold text-lg px-10 py-3 rounded-lg hover:bg-cyan-400 transition-all duration-300 transform hover:scale-105';
         searchButton.textContent = 'Finde mein Spiel!';
-        searchButton.onclick = extractTagsAndSearch;
+        searchButton.onclick = findBestGameMatch;
         ui.userInputArea.appendChild(searchButton);
     } else if (inputType === 'text') {
         const form = document.createElement('form');
@@ -3355,163 +3391,116 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
         setLoading(false);
     }
 }
-async function searchGames(criteria) {
-    setLoading(true);
-    console.log(`Starte gestaffelte IGDB-Suche mit Kriterien:`, criteria);
+// ======================================================================
+// DIE NEUE, SCORE-BASIERTE EMPFEHLUNGS-ENGINE
+// ======================================================================
 
-    try {
-        const { genre, themes, category } = criteria;
-
-        // Eine Hilfsfunktion, um die Suchanfrage zu bauen.
-        const buildQuery = (searchGenre, searchThemes) => {
-            // Basisanforderungen, die jedes Spiel erfüllen muss
-            let whereClauses = ["cover != null", "name != null", "total_rating_count > 10", "version_parent = null", "category = 0"];
-            let genresToSearch = [];
-
-            if (searchGenre) {
-                genresToSearch.push(searchGenre);
+// HILFSFUNKTION: Extrahiert Keywords aus dem Gespräch
+function extractKeywordsFromChat(chatHistory, scoreDefinition) {
+    const conversationText = chatHistory.map(entry => entry.parts[0].text).join(' ').toLowerCase();
+    const foundKeywords = new Set();
+    
+    for (const keyword in scoreDefinition) {
+        if (conversationText.includes(keyword)) {
+            // Wenn das Keyword spezielle Slugs hat (z.B. für "düster"), füge diese hinzu
+            if (scoreDefinition[keyword].slugs) {
+                scoreDefinition[keyword].slugs.forEach(slug => foundKeywords.add(slug));
+            } else {
+                foundKeywords.add(keyword);
             }
-            // Wenn "Indie" explizit gewünscht ist, wird es zur Genre-Suche hinzugefügt.
-            if (category === 'indie') {
-                genresToSearch.push('indie');
-            }
-
-            if (genresToSearch.length > 0) {
-                whereClauses.push(`genres.slug = ("${genresToSearch.join('","')}")`);
-            }
-            
-            // Flexible "ODER"-Suche für Themen
-            if (searchThemes && searchThemes.length > 0) {
-                const themeClauses = searchThemes.map(t => `themes.slug = "${t}"`);
-                whereClauses.push(`(${themeClauses.join(' | ')})`);
-            }
-            
-            const whereString = whereClauses.join(' & ');
-            return `fields name, summary, cover.url, genres.name, genres.slug, themes.name, themes.slug, game_modes.name, game_modes.slug; where ${whereString}; sort total_rating_count desc; limit 40;`;
-        };
-
-        // Hilfsfunktion zum Ausführen der Anfrage
-        const runQuery = async (query) => {
-            const response = await fetch('/.netlify/functions/call-igdb', { method: 'POST', body: JSON.stringify({ query }) });
-            if (!response.ok) return [];
-            return await response.json();
-        };
-
-        let igdbResults = [];
-
-        // --- GESTAFFELTE "WASSERFALL"-SUCHE ---
-
-        // VERSUCH 1: Perfekte, spezifische Suche (Genre + Themen)
-        console.log("Versuch 1: Suche mit Genre und Themen.");
-        if (genre || (themes && themes.length > 0)) {
-            igdbResults = await runQuery(buildQuery(genre, themes));
         }
-
-        // VERSUCH 2: Nur mit dem Hauptgenre suchen, wenn Versuch 1 fehlschlägt.
-        if (igdbResults.length === 0 && genre) {
-            console.log("Versuch 1 fehlgeschlagen. Starte Versuch 2: Suche nur mit dem wichtigsten Genre.");
-            igdbResults = await runQuery(buildQuery(genre, null));
-        }
-        
-        // VERSUCH 3: Nur mit Themen suchen, wenn alles andere fehlschlägt.
-        if (igdbResults.length === 0 && themes && themes.length > 0) {
-            console.log("Versuch 2 fehlgeschlagen. Starte Versuch 3 als Notfall: Suche nur mit Themen.");
-            igdbResults = await runQuery(buildQuery(null, themes));
-        }
-        
-        // --- DER "UNBESTECHLICHE TÜRSTEHER" ---
-        // Finale Überprüfung, falls nach "Indie" gefragt wurde.
-        if (category === 'indie') {
-            const strictlyIndieGames = igdbResults.filter(game => game.genres && game.genres.some(g => g.slug === 'indie'));
-            console.log(`Strikte Indie-Filterung angewendet. Reduziert von ${igdbResults.length} auf ${strictlyIndieGames.length} Spiele.`);
-            igdbResults = strictlyIndieGames;
-        }
-
-        // --- Formatierung für den Rest der App ---
-        const formattedGames = igdbResults.map(game => ({
-            id: game.id,
-            name: game.name,
-            background_image: game.cover ? game.cover.url.replace('t_thumb', 't_cover_big') : 'https://placehold.co/600x400',
-            genres: game.genres || [],
-            themes: game.themes || [],
-            game_modes: game.game_modes || []
-        }));
-
-        console.log(`Finale, geprüfte Liste von IGDB: ${formattedGames.length} einzigartige Spiele.`);
-        return formattedGames;
-
-    } catch (error) {
-        console.error("Fehler bei der IGDB Spielesuche:", error);
-        renderErrorState("Fehler bei der Spielesuche. Bitte versuche es später erneut.");
-        return [];
-    } finally {
-        setLoading(false);
     }
+    console.log("Extrahierte Keywords:", Array.from(foundKeywords));
+    return Array.from(foundKeywords);
 }
-async function extractTagsAndSearch() {
+
+// DIE NEUE HAUPTFUNKTION
+async function findBestGameMatch() {
     const user = auth.currentUser;
     if (!user && getGuestUsage().count >= 2) {
         renderGuestLimitMessage();
         return;
     }
 
-    renderSystemMessage("Analysiere deine Wünsche und durchsuche die Spieledatenbank...");
-    
-    const conversationText = chatHistory.map(entry => entry.parts[0].text).join(' ');
+    renderSystemMessage("Analysiere deine Wünsche, bewerte Spiele und finde dein Match...");
 
     try {
-        // KORREKTUR: Wir fragen jetzt explizit nach 'cover.url', um die Bilder zu bekommen.
-        const query = `
-            fields name, summary, cover.url, genres.name, themes.name;
-            sort total_rating_count desc;
-            limit 100;
-            where category = 0 & total_rating_count > 100 & version_parent = null & cover != null;
-        `;
-        const initialGames = await runIGDBQuery(query);
-
-        if (!initialGames || initialGames.length === 0) {
-            renderErrorState("Konnte keine Basis-Spieleliste von der Datenbank abrufen.");
+        // 1. Keywords aus dem Chat extrahieren
+        const keywords = extractKeywordsFromChat(chatHistory, keywordScores);
+        if (keywords.length === 0) {
+            renderErrorState("Ich konnte deine Wünsche nicht klar verstehen. Bitte versuche es mit anderen Worten.");
             return;
         }
 
-        const gameCandidatesForAI = initialGames.map(g => ({
-            id: g.id,
-            name: g.name,
-            summary: g.summary,
-            genres: g.genres ? g.genres.map(gen => gen.name).join(', ') : '',
-            themes: g.themes ? g.themes.map(th => th.name).join(', ') : ''
-        }));
-        
-        const finalPrompt = `
-            Based on the following user conversation, select the single best matching game from the provided JSON list of candidates.
-            User Conversation: "${conversationText}"
-            Candidate Games List: ${JSON.stringify(gameCandidatesForAI)}
+        // 2. Eine breite Liste an Kandidaten von IGDB holen
+        const query = `
+            fields name, summary, cover.url, genres.slug, themes.slug;
+            sort total_rating_count desc;
+            limit 200;
+            where category = 0 & total_rating_count > 100 & version_parent = null & cover != null;
         `;
-
-        const jsonResponseText = await callGeminiAPI(finalPrompt, systemPromptFinal, false);
-        if (jsonResponseText) {
-            handleAIResponse(jsonResponseText, (parsedJson) => {
-                const chosenGame = initialGames.find(g => g.id === parsedJson.game.id);
-                if (chosenGame) {
-                    // Wir wandeln das IGDB-Ergebnis in unser internes Format um, bevor wir es anzeigen.
-                    const formattedGame = {
-                        id: chosenGame.id,
-                        name: chosenGame.name,
-                        background_image: chosenGame.cover ? chosenGame.cover.url.replace('t_thumb', 't_cover_big') : 'https://placehold.co/600x400',
-                        genres: chosenGame.genres || [],
-                        themes: chosenGame.themes || [],
-                        game_modes: chosenGame.game_modes || []
-                    };
-                    showResult(formattedGame, parsedJson.game.description, initialGames.map(g => ({...g, background_image: g.cover ? g.cover.url.replace('t_thumb', 't_cover_big') : ''})));
-                } else {
-                    console.error("KI hat eine ID zurückgegeben, die nicht in der Kandidatenliste war:", parsedJson.game.id);
-                    renderErrorState("Die KI hat einen Fehler gemacht. Bitte versuche eine neue Suche.");
-                }
-            });
+        const candidateGames = await runIGDBQuery(query);
+        if (!candidateGames || candidateGames.length === 0) {
+            renderErrorState("Konnte keine Spiele von der Datenbank abrufen. Versuche es später erneut.");
+            return;
         }
+
+        // 3. Bereits gesehene Spiele des Nutzers holen
+        let seenGameIds = new Set();
+        if (user) {
+            const seenGamesSnapshot = await db.collection("users").doc(user.uid).collection("suggestedGames").get();
+            seenGameIds = new Set(seenGamesSnapshot.docs.map(doc => doc.data().rawgId));
+        }
+
+        // 4. Spiele bewerten (Scoring) und filtern
+        const scoredGames = candidateGames
+            .map(game => {
+                let score = 0;
+                const gameGenres = game.genres ? game.genres.map(g => g.slug) : [];
+                const gameThemes = game.themes ? game.themes.map(t => t.slug) : [];
+
+                keywords.forEach(keyword => {
+                    if (gameGenres.includes(keyword) || gameThemes.includes(keyword)) {
+                        // Finde die Punktzahl für das Keyword
+                        const scoreEntry = Object.values(keywordScores).find(entry => entry.slugs ? entry.slugs.includes(keyword) : false) || keywordScores[keyword];
+                        if (scoreEntry) {
+                            score += scoreEntry.points;
+                        }
+                    }
+                });
+                return { ...game, score };
+            })
+            .filter(game => game.score > 0 && !seenGameIds.has(game.id)); // Nur Spiele mit Punkten, die noch nicht gesehen wurden
+
+        if (scoredGames.length === 0) {
+            renderErrorState("Ich konnte leider kein passendes Spiel für deine spezifische Anfrage finden. Versuche es mit anderen Kriterien!");
+            return;
+        }
+
+        // 5. Nach Score sortieren
+        scoredGames.sort((a, b) => b.score - a.score);
+
+        // 6. Das beste Spiel auswählen und KI die Beschreibung schreiben lassen
+        const chosenGame = scoredGames[0]; 
+        console.log("Bestes Match:", chosenGame.name, "Score:", chosenGame.score);
+
+        const gameFacts = {
+            name: chosenGame.name,
+            genres: (chosenGame.genres || []).map(g => g.name).join(', '),
+            themes: (chosenGame.themes || []).map(t => t.name).join(', '),
+        };
+        const descriptionPrompt = `Write a short, exciting recommendation for the following game based on these facts. Game Name: ${gameFacts.name}, Genres: ${gameFacts.genres}, Themes/Setting: ${gameFacts.themes}. Based on these facts, create the recommendation text.`;
+        
+        const descriptionText = await callGeminiAPI(descriptionPrompt, systemPromptDescription, false);
+        if (descriptionText) {
+            showResult(chosenGame, descriptionText, scoredGames);
+        } else {
+            renderErrorState("Die KI konnte keine Beschreibung erstellen.");
+        }
+
     } catch (error) {
-        console.error("Fehler im neuen extractTagsAndSearch-Prozess:", error);
-        renderErrorState("Ein Fehler ist aufgetreten. Bitte versuche es später erneut.");
+        console.error("Fehler im findBestGameMatch-Prozess:", error);
+        renderErrorState("Ein schwerwiegender Fehler ist aufgetreten.");
     }
 }
 
@@ -3520,80 +3509,6 @@ async function runIGDBQuery(query) {
     const response = await fetch('/.netlify/functions/call-igdb', { method: 'POST', body: JSON.stringify({ query }) });
     if (!response.ok) return [];
     return await response.json();
-}
-async function handleTagExtraction(parsedJson) {
-    const criteria = parsedJson;
-    
-    if (!criteria || !criteria.genre) {
-         renderErrorState("Ich konnte leider kein klares Genre aus deiner Anfrage ableiten. Bitte versuche es noch einmal.");
-         return;
-    }
-
-    renderSystemMessage(`Suche nach Spielen, die zu deinen Wünschen passen...`);
-    const igdbResults = await searchGames(criteria);
-
-    if (!igdbResults || igdbResults.length === 0) {
-        renderErrorState(`Ich konnte leider keine Spiele für deine Kriterien finden. Bitte starte eine neue Suche.`);
-        return;
-    }
-
-    // ======================================================================
-    // NEUE LOGIK: Gesehene Spiele filtern & Ergebnisse mischen
-    // ======================================================================
-    let finalResults = igdbResults;
-    const user = auth.currentUser;
-
-    // Schritt 1: Hole die Liste der bereits gesehenen Spiele für eingeloggte Nutzer
-    if (user) {
-        try {
-            const seenGamesSnapshot = await db.collection("users").doc(user.uid).collection("suggestedGames").get();
-            const seenGameIds = new Set(seenGamesSnapshot.docs.map(doc => doc.data().rawgId));
-            
-            // Schritt 2: Filtere die IGDB-Ergebnisse
-            const initialCount = finalResults.length;
-            const unseenGames = igdbResults.filter(game => !seenGameIds.has(game.id));
-            
-            console.log(`Filter für gesehene Spiele angewendet. Reduziert von ${initialCount} auf ${unseenGames.length} Ergebnisse.`);
-
-            // Fallback: Wenn alle Spiele aus der Suche schon gesehen wurden, nimm die ursprüngliche Liste,
-            // damit der Nutzer nicht ohne Ergebnis dasteht.
-            if (unseenGames.length > 0) {
-                finalResults = unseenGames;
-            } else {
-                console.log("Alle gefundenen Spiele wurden bereits vorgeschlagen. Nutze ursprüngliche Liste als Fallback.");
-            }
-        } catch(e) {
-            console.error("Fehler beim Abrufen der gesehenen Spiele:", e);
-        }
-    }
-
-    // Schritt 3: Mische die (gefilterte) Ergebnisliste, um Abwechslung zu schaffen
-    for (let i = finalResults.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [finalResults[i], finalResults[j]] = [finalResults[j], finalResults[i]];
-    }
-
-    // Schritt 4: Wähle das erste Spiel aus der neuen, gemischten und gefilterten Liste
-    const chosenGame = finalResults[0];
-
-    // Der Rest der Funktion bleibt gleich...
-    const gameFacts = {
-        name: chosenGame.name,
-        genres: chosenGame.genres.map(g => g.name).join(', '),
-        themes: chosenGame.themes.map(t => t.name).join(', '),
-        game_modes: chosenGame.game_modes.map(m => m.name).join(', ')
-    };
-    const descriptionPrompt = `
-        Write a short, exciting recommendation for the following game based on these facts.
-        Game Name: ${gameFacts.name}, Genres: ${gameFacts.genres}, Themes/Setting: ${gameFacts.themes}, Game Modes: ${gameFacts.game_modes}
-        Based on these facts, create the recommendation text.
-    `;
-    const descriptionText = await callGeminiAPI(descriptionPrompt, systemPromptDescription, false);
-    if (descriptionText) {
-        showResult(chosenGame, descriptionText, finalResults);
-    } else {
-        renderErrorState("Die KI konnte keine Beschreibung für das Spiel erstellen.");
-    }
 }
 function displayStars(container, avgRating, count) {
     let starsHtml = '';
