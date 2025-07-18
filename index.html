@@ -3754,41 +3754,39 @@ async function handleLikeGame(gameData, description) {
     const user = auth.currentUser;
     if (!user) return;
 
-    const gameIdStr = String(gameData.id);
-    const userId = user.uid;
-
     try {
-        // Dieser Teil ist korrekt und speichert das Spiel in der persönlichen Sammlung.
-        await db.collection("users").doc(userId).collection("suggestedGames").add({
+        // KORREKTUR: Nutzt die korrekte Bild-URL aus dem 'cover'-Objekt von IGDB
+        const imageUrl = gameData.cover ? gameData.cover.url.replace('t_thumb', 't_cover_big') : '';
+
+        // Speichert das Spiel in der persönlichen Sammlung des Nutzers
+        await db.collection("users").doc(user.uid).collection("suggestedGames").add({
             title: gameData.name,
             rawgId: gameData.id,
-            imageUrl: gameData.background_image,
+            imageUrl: imageUrl, // Korrekter Wert wird hier gespeichert
             description: description,
             status: 'liked',
             suggestedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-
-        const gameLikesRef = db.collection("gameLikes").doc(gameIdStr);
-        const userProfile = await db.collection('users').doc(userId).get();
+        
+        // Logik für die "Mitspieler finden"-Funktion
+        const gameLikesRef = db.collection("gameLikes").doc(String(gameData.id));
+        const userProfile = await db.collection('users').doc(user.uid).get();
         const userData = userProfile.data();
 
-        // KORREKTUR HIER:
-        // Wir erstellen eine korrekte, verschachtelte 'users'-Map.
         await gameLikesRef.set({
             gameTitle: gameData.name,
-            users: { // Erstellt das 'users'-Feld
-                [userId]: { // Fügt den Nutzer mit seiner ID als Schlüssel hinzu
+            users: {
+                [user.uid]: {
                     username: userData.username,
                     avatarUrl: userData.avatarUrl,
                     likedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }
             }
-        }, { merge: true }); // { merge: true } sorgt dafür, dass andere Nutzer im 'users'-Feld nicht überschrieben werden.
+        }, { merge: true });
         
         alert(`${gameData.name} wurde zu deinem Profil hinzugefügt!`);
-        await grantXpAndCheckLevelUp(userId, 15);
+        await grantXpAndCheckLevelUp(user.uid, 15);
         startConversation();
-        window.location.hash = '#matchmaker';
 
     } catch (error) {
         console.error("Fehler beim Liken des Spiels:", error);
@@ -3799,45 +3797,41 @@ async function handleLikeGame(gameData, description) {
 async function handleDislikeGame(gameData, description) {
     const user = auth.currentUser;
     if (user) {
-        // Speichere das abgelehnte Spiel im Hintergrund
-        await db.collection("users").doc(user.uid).collection("suggestedGames").add({
-            title: gameData.name,
-            rawgId: gameData.id,
-            imageUrl: gameData.background_image,
-            description: description,
-            status: 'disliked',
-            suggestedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        try {
+            // KORREKTUR: Nutzt die korrekte Bild-URL aus dem 'cover'-Objekt von IGDB
+            const imageUrl = gameData.cover ? gameData.cover.url.replace('t_thumb', 't_cover_big') : '';
+
+            await db.collection("users").doc(user.uid).collection("suggestedGames").add({
+                title: gameData.name,
+                rawgId: gameData.id,
+                imageUrl: imageUrl, // Korrekter Wert wird hier gespeichert
+                description: description,
+                status: 'disliked',
+                suggestedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (e) {
+            console.error("Fehler beim Speichern des Dislikes:", e);
+        }
     }
 
-    // Prüfen, ob noch weitere Kandidaten in der Liste sind
     if (currentGameCandidates && currentGameCandidates.length > 0) {
         renderSystemMessage("Okay, wie wäre es stattdessen hiermit?");
+        const nextGame = currentGameCandidates[0];
         
-        // NEUE LOGIK: Wir nehmen den nächsten Kandidaten aus der Liste
-        const nextGame = currentGameCandidates[0]; // Das nächste Spiel in der Liste
+        const gameFacts = {
+            name: nextGame.name,
+            genres: nextGame.genres.map(g => g.name).join(', '),
+            themes: nextGame.themes.map(t => t.name).join(', '),
+            game_modes: nextGame.game_modes.map(m => m.name).join(', ')
+        };
+        const descriptionPrompt = `Write a short, exciting recommendation for the following game based on these facts. Game Name: ${gameFacts.name}, Genres: ${gameFacts.genres}, Themes/Setting: ${gameFacts.themes}, Game Modes: ${gameFacts.game_modes}. Based on these facts, create the recommendation text.`;
         
-        // Wir holen uns die originale Konversation für den Kontext.
-        const fullConversation = chatHistory.map(entry => entry.parts[0].text).join(' ');
-
-        // Wir erstellen einen simplen Prompt, der die KI bittet, nur den Text zu schreiben.
-        const descriptionPrompt = `
-            User request: "${fullConversation}"
-            Chosen Game: "${nextGame.name}"
-            Write the recommendation text now.
-        `;
-        
-        // Wir rufen die KI mit dem "Texter"-System-Prompt auf.
         const newDescription = await callGeminiAPI(descriptionPrompt, systemPromptDescription, false);
-
         if (newDescription) {
-            // Wir rufen showResult mit den korrekten Daten auf:
-            // Unser gewähltes Spiel, der neue Text und die restlichen Kandidaten.
             showResult(nextGame, newDescription, currentGameCandidates);
         } else {
              renderErrorState("Die KI konnte keine neue Beschreibung erstellen.");
         }
-
     } else {
         renderErrorState("Ich habe leider keine weiteren Vorschläge auf Lager. Lass uns eine neue Suche starten!");
     }
@@ -4249,21 +4243,24 @@ document.getElementById('game-detail-modal').addEventListener('click', (e) => {
         closeCommentModal();
     }
 });
-async function showResult(finalGame, finalDescription, rawgGames) {
+async function showResult(finalGame, finalDescription, igdbResults) {
     setLoading(false);
     try {
-        currentGameCandidates = rawgGames.filter(g => g.id !== finalGame.id);
+        currentGameCandidates = igdbResults.filter(g => g.id !== finalGame.id);
 
-        // Spiel-Informationen anzeigen
         const resultContainer = ui.resultContainer;
-        resultContainer.querySelector('#result-img').src = finalGame.background_image;
+        
+        // KORREKTUR: Nutzt die korrekte Bild-URL aus dem 'cover'-Objekt von IGDB
+        const imageUrl = finalGame.cover ? finalGame.cover.url.replace('t_thumb', 't_cover_big') : 'https://placehold.co/600x400';
+        
+        resultContainer.querySelector('#result-img').src = imageUrl;
         resultContainer.querySelector('#result-title').textContent = finalGame.name;
         resultContainer.querySelector('#result-description').textContent = finalDescription.replace(/"/g, '');
 
-        // --- NEU: AFFILIATE-BUTTONS DYNAMISCH ERSTELLEN ---
+        // Affiliate-Buttons dynamisch erstellen
         const affiliateContainer = document.getElementById('result-affiliate-links');
         if (affiliateContainer) {
-            affiliateContainer.innerHTML = ''; // Leert alte Buttons
+            affiliateContainer.innerHTML = ''; 
             const encodedGameName = encodeURIComponent(finalGame.name);
 
             affiliatePartners.forEach(partner => {
@@ -4279,7 +4276,7 @@ async function showResult(finalGame, finalDescription, rawgGames) {
             });
         }
         
-        // Like/Dislike-Buttons wie gewohnt anzeigen
+        // Like/Dislike-Buttons anzeigen
         document.getElementById('result-action-container')?.remove();
         const actionContainer = document.createElement('div');
         actionContainer.id = 'result-action-container';
@@ -4855,7 +4852,8 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.setItem('giveawayBannerClosed', 'true');
         });
     }
-    
+        ui.resetQuizButton?.addEventListener('click', startConversation);
+
     // Initialisierungsfunktionen
     incrementVisitCounter();
     Promise.all([loadTagsFromAPI(), loadGenresFromAPI()]).then(() => {
