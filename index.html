@@ -40,6 +40,11 @@
         h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 800; }
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
         .hero-bg { background-image: linear-gradient(to top, var(--bg-dark) 5%, transparent 50%), linear-gradient(rgba(17, 24, 39, 0.85), rgba(17, 24, 39, 1)), url('https://images.pexels.com/photos/924824/pexels-photo-924824.jpeg?auto=compress&cs=tinysrgb&w=1920'); background-size: cover; background-position: center; }
+        .hero-section-new {
+    background-image: url('https://images.unsplash.com/photo-1580234811497-9df7fd2f357e?q=80&w=2069&auto=format&fit=crop'); /* Neues Hintergrundbild */
+    background-size: cover;
+    background-position: center;
+}
         .page-section { display: none; opacity: 0; transition: opacity 0.3s ease; }
         .page-section.active { display: block; opacity: 1; }
         #home.active { animation: none; }
@@ -361,143 +366,121 @@ main {
 </header>
 
     <main>
-        <section id="home" class="page-section active fade-in">
-    <div class="hero-bg glow-bg">
-        <div class="container mx-auto px-4 py-12 md:py-24 text-center">
-        <h1 data-i18n="hero_title" class="font-black text-white mb-4 text-fluid-hero"></h1>
-        <p data-i18n="hero_subtitle" class="text-gray-400 max-w-2xl mx-auto mb-8 text-fluid-subhero"></p>
-        <a data-i18n="hero_cta" href="#matchmaker" class="bg-cyan-500 text-gray-900 font-bold text-base px-8 py-3 sm:text-lg sm:px-10 sm:py-4 rounded-lg hover:bg-cyan-400 transition-all duration-300 transform hover:scale-105 nav-trigger"></a>
+<section id="home" class="page-section active">
 
-            <div id="home-daily-challenge" class="hidden container mx-auto px-6 mt-12 max-w-3xl">
-                <div class="bg-gray-800/50 border-2 border-yellow-700 rounded-xl p-6 text-center shadow-lg glow-bg">
-                    <h3 data-i18n="daily_mission_title" class="text-2xl font-bold text-yellow-300"></h3>
-                    <p id="home-daily-challenge-text" class="text-yellow-200 mt-2 text-lg">Lade Challenge...</p>
-                    <div id="home-daily-challenge-reward" class="mt-3 text-sm text-gray-300">
-                        <span data-i18n="daily_mission_reward"></span> <span class="font-bold text-white">+25 XP</span>
+    <div class="hero-section-new relative text-white text-center py-40 sm:py-56 flex flex-col items-center justify-center glow-bg">
+        <div class="absolute inset-0 bg-black opacity-50"></div>
+        <div class="relative z-10 container mx-auto px-6">
+            <h1 data-i18n="hero_new_title" class="text-4xl md:text-6xl font-extrabold leading-tight">Finde dein perfektes Gaming-Erlebnis</h1>
+            <p data-i18n="hero_new_subtitle" class="mt-4 text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">Unsere KI analysiert deine Stimmung, verfügbare Zeit und Vorlieben, um dir das perfekte Spiel von Steam zu empfehlen.</p>
+            <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="#matchmaker" data-i18n="hero_new_cta_main" class="nav-trigger bg-cyan-500 text-gray-900 font-bold px-8 py-3 rounded-lg hover:bg-cyan-400 transition-transform transform hover:scale-105 w-full sm:w-auto">KI-Beratung starten</a>
+                <a href="#why-gamematch" data-i18n="hero_new_cta_secondary" class="nav-trigger bg-gray-700/50 text-white font-semibold px-8 py-3 rounded-lg hover:bg-gray-600 transition-transform w-full sm:w-auto">Mehr erfahren</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="why-gamematch" class="py-24 sm:py-32">
+        <div class="container mx-auto px-6 max-w-7xl">
+            <div class="mx-auto max-w-2xl lg:text-center mb-16">
+                <h2 data-i18n="why_title" class="text-base font-semibold leading-7 text-cyan-400">Warum GameMatch?</h2>
+                <p data-i18n="why_subtitle" class="mt-2 font-bold tracking-tight text-white text-fluid-heading">Hör auf, endlos durch Steam zu scrollen.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 text-center">
+                    <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-cyan-500 mx-auto mb-4">
+                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
                     </div>
-                    <button data-i18n="daily_mission_cta" id="home-daily-challenge-cta" class="mt-4 rounded-md bg-yellow-500 px-5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-yellow-400"></button>
+                    <h3 data-i18n="why_feature1_title" class="text-lg font-semibold text-white">KI-gestützte Empfehlungen</h3>
+                    <p data-i18n="why_feature1_desc" class="mt-2 text-gray-400">Unsere fortschrittliche KI versteht deine Stimmung und findet das perfekte Spiel für jeden Moment.</p>
                 </div>
-            </div>
-            <div class="py-24 sm:py-32">
-    <div class="container mx-auto px-6 max-w-7xl">
-        <div class="mx-auto max-w-2xl lg:text-center">
-            <h2 data-i18n="feature_section_title" class="text-base font-semibold leading-7 text-cyan-400">Dein persönliches Gaming-Universum</h2>
-            <p data-i18n="feature_section_subtitle" class="mt-2 font-bold tracking-tight text-white text-fluid-heading">Mehr als nur Empfehlungen</p>
-            <p data-i18n="feature_section_desc" class="mt-6 text-lg leading-8 text-gray-400">
-                Ein GameMatch-Konto ist dein zentraler Hub für alles, was mit deinen Spielen zu tun hat. Sammle, teile und verfolge deinen Fortschritt.
-            </p>
-        </div>
-
-        <div class="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
-            <dl class="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-3 lg:gap-y-16">
-                <div class="relative pl-16">
-                    <dt class="text-base font-semibold leading-7 text-white">
-                        <div class="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-500">
-                            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                            </svg>
-                        </div>
-                        <span data-i18n="feature_new_library_title">Deine Bibliothek</span>
-                    </dt>
-                    <dd data-i18n="feature_new_library_desc" class="mt-2 text-base leading-7 text-gray-400">Jedes Spiel, das du magst, wird hier gespeichert. Erstelle deine ultimative Sammlung, bewerte sie und zeige sie deinen Freunden.</dd>
-                </div>
-
-                <div class="relative pl-16">
-                    <dt class="text-base font-semibold leading-7 text-white">
-                        <div class="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-500">
-                            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.964A4.5 4.5 0 1112 5.25v-2.25m-5.25 4.5a4.5 4.5 0 00-1.372 2.964m-7.5 0a4.5 4.5 0 013.741-2.25m9.75 0a4.5 4.5 0 011.372 2.964M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                        </div>
-                        <span data-i18n="feature_new_crew_title">Deine Crew</span>
-                    </dt>
-                    <dd data-i18n="feature_new_crew_desc" class="mt-2 text-base leading-7 text-gray-400">Finde Spieler, die deinen Geschmack teilen. Vergleicht eure Bibliotheken und findet heraus, welche Spiele ihr gemeinsam zocken könnt.</dd>
-                </div>
-
-                <div class="relative pl-16">
-                    <dt class="text-base font-semibold leading-7 text-white">
-                        <div class="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-500">
-                            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9a9.75 9.75 0 011.056-5.223 9.75 9.75 0 01-1.056-5.223H7.5a9.75 9.75 0 019 0h-1.875a9.75 9.75 0 01-1.056 5.223A9.75 9.75 0 0116.5 18.75z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 1.5v5.25m0 7.5v5.25m0-5.25h-5.25m5.25 0h5.25" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 5.625a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                        </div>
-                        <span data-i18n="feature_new_progress_title">Dein Fortschritt</span>
-                    </dt>
-                    <dd data-i18n="feature_new_progress_desc" class="mt-2 text-base leading-7 text-gray-400">Sammle für deine Aktivitäten auf der Seite Erfahrungspunkte (XP), steige im Level auf und schalte neue Ränge frei.</dd>
-                </div>
-            </dl>
-        </div>
-    </div>
-</div>
-                    <div id="stats-section" class="py-12 bg-gray-900/50">
-    <div class="container mx-auto px-6 max-w-5xl">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-                <span id="stat-recommendations" class="font-orbitron text-4xl font-bold text-cyan-400">735</span>
-                <p class="text-gray-400 mt-2">Spielempfehlungen generiert</p>
-            </div>
-            <div>
-                <span id="stat-members" class="font-orbitron text-4xl font-bold text-cyan-400">0</span>
-                <p class="text-gray-400 mt-2">Community-Mitglieder</p>
-            </div>
-            <div>
-                <span id="stat-rating" class="font-orbitron text-4xl font-bold text-cyan-400">4,5</span>
-                <p class="text-gray-400 mt-2">Durchschnittliche Bewertung</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="py-24">
-    <div class="container mx-auto px-6 max-w-5xl">
-        <h2 class="text-center font-bold text-white text-fluid-heading">Was unsere Nutzer sagen</h2>
-        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
-                <p class="text-gray-300">"Ich habe Stunden auf Steam verschwendet. GameMatch hat mir in 2 Minuten ein perfektes Indie-Juwel gefunden. Wahnsinn!"</p>
-                <div class="flex items-center mt-4">
-                    <img src="https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/avatars/00/000f11d60061e1748b851b1d850ac25e59541ca1_full.jpg" alt="Kamatra" class="w-10 h-10 rounded-full">
-                    <p class="ml-4 font-semibold text-white">Kamatra</p>
-                </div>
-            </div>
-            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
-                <p class="text-gray-300">"Die KI ist erschreckend gut, natürlich hat sie noch Kinderkrankheiten. Endlich mal Empfehlungen, die nicht nur die üblichen AAA Titel sind."</p>
-                <div class="flex items-center mt-4">
-                    <img src="https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/avatars/00/000f1af6be1137efc205847eac9490245dd9e94c_full.jpg" alt="djdonni" class="w-10 h-10 rounded-full">
-                    <p class="ml-4 font-semibold text-white">djdonni</p>
-                </div>
-            </div>
-            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
-                <p class="text-gray-300">"Super Tool, um schnell herauszufinden, worauf man gerade Bock hat. Nutze es mittlerweile fast täglich, ab und an kommen echt lustige Vorschläge - immer eine Überraschung."</p>
-                <div class="flex items-center mt-4">
-                    <img src="https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/avatars/00/000f0890a8ff84304784f8075897f3789bb0cff4_full.jpg" alt="Zeli" class="w-10 h-10 rounded-full">
-                    <p class="ml-4 font-semibold text-white">Zeli</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-                    <div class="mt-24 bg-gray-900 border border-gray-700 rounded-2xl p-8 text-center">
-                        <h3 data-i18n="guest_cta_title" class="font-bold text-white text-fluid-heading"></h3>
-                        <p data-i18n="guest_cta_desc" class="mt-4 text-gray-400 max-w-2xl mx-auto"></p>
-                        <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-x-6">
-                            <button data-i18n="guest_cta_register" id="open-register-modal-btn" class="rounded-md bg-cyan-500 px-6 py-3 text-sm font-semibold text-gray-900 shadow-sm hover:bg-cyan-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600"></button>
-                            <button data-i18n="guest_cta_login" id="open-login-modal-btn" class="text-sm font-semibold leading-6 text-white hover:underline"></button>
-                        </div>
+                <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 text-center">
+                    <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-cyan-500 mx-auto mb-4">
+                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </div>
-                    
-                    <div id="featured-game-section" class="mt-24 sm:mt-32">
-    <div class="container mx-auto px-6 max-w-4xl">
-        <div class="text-center mb-8">
-            <h2 class="text-base font-semibold leading-7 text-cyan-400">Spiel des Tages</h2>
-            <p class="mt-2 font-bold tracking-tight text-white text-fluid-heading">Unsere Empfehlung für dich</p>
-        </div>
-        <div id="featured-game-card" class="text-center p-4">
+                    <h3 data-i18n="why_feature2_title" class="text-lg font-semibold text-white">Blitzschnell</h3>
+                    <p data-i18n="why_feature2_desc" class="mt-2 text-gray-400">Erhalte persönliche Empfehlungen in Minuten, statt stundenlang durch endlose Listen zu scrollen.</p>
+                </div>
+                <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 text-center">
+                   <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-cyan-500 mx-auto mb-4">
+                       <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.964A4.5 4.5 0 1112 5.25v-2.25m-5.25 4.5a4.5 4.5 0 00-1.372 2.964m-7.5 0a4.5 4.5 0 013.741-2.25m9.75 0a4.5 4.5 0 011.372 2.964M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    </div>
+                    <h3 data-i18n="why_feature3_title" class="text-lg font-semibold text-white">Gaming Community</h3>
+                    <p data-i18n="why_feature3_desc" class="mt-2 text-gray-400">Verbinde dich mit Spielern, die deinen Geschmack teilen, baue deine Sammlung auf und entdecke neue Mitspieler.</p>
+                </div>
             </div>
+        </div>
     </div>
-</div>
-        </section>
+
+    <div id="stats-section" class="py-12 bg-gray-900/50">
+        <div class="container mx-auto px-6 max-w-5xl">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <div>
+                    <span id="stat-recommendations" class="font-orbitron text-4xl font-bold text-cyan-400">0</span>
+                    <p class="text-gray-400 mt-2">Spielempfehlungen generiert</p>
+                </div>
+                <div>
+                    <span id="stat-members" class="font-orbitron text-4xl font-bold text-cyan-400">0</span>
+                    <p class="text-gray-400 mt-2">Community-Mitglieder</p>
+                </div>
+                <div>
+                    <span id="stat-rating" class="font-orbitron text-4xl font-bold text-cyan-400">0</span>
+                    <p class="text-gray-400 mt-2">Durchschnittliche Bewertung</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="py-24 sm:py-32">
+        <div class="container mx-auto px-6 max-w-7xl">
+            <div class="mx-auto max-w-2xl lg:text-center mb-16">
+                <h2 data-i18n="popular_games_title" class="text-base font-semibold leading-7 text-cyan-400">Beliebte Spiele</h2>
+                <p data-i18n="popular_games_subtitle" class="mt-2 font-bold tracking-tight text-white text-fluid-heading">Entdecke, was die Community spielt</p>
+            </div>
+            <div id="popular-games-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                </div>
+        </div>
+    </div>
+
+    <div class="py-12 bg-gray-800/50">
+        <div class="container mx-auto px-6 max-w-5xl">
+            <h2 class="text-center font-bold text-white text-fluid-heading">Was unsere Nutzer sagen</h2>
+            <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                    <p class="text-gray-300">"Ich habe Stunden auf Steam verschwendet. GameMatch hat mir in 2 Minuten ein perfektes Indie-Juwel gefunden. Wahnsinn!"</p>
+                    <div class="flex items-center mt-4">
+                        <img src="https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/avatars/00/000f11d60061e1748b851b1d850ac25e59541ca1_full.jpg" alt="Kamatra" class="w-10 h-10 rounded-full">
+                        <p class="ml-4 font-semibold text-white">Kamatra</p>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                    <p class="text-gray-300">"Die KI ist erschreckend gut, natürlich hat sie noch Kinderkrankheiten. Endlich mal Empfehlungen, die nicht nur die üblichen AAA Titel sind."</p>
+                    <div class="flex items-center mt-4">
+                        <img src="https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/avatars/00/000f1af6be1137efc205847eac9490245dd9e94c_full.jpg" alt="djdonni" class="w-10 h-10 rounded-full">
+                        <p class="ml-4 font-semibold text-white">djdonni</p>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                    <p class="text-gray-300">"Super Tool, um schnell herauszufinden, worauf man gerade Bock hat. Nutze es mittlerweile fast täglich, ab und an kommen echt lustige Vorschläge - immer eine Überraschung."</p>
+                    <div class="flex items-center mt-4">
+                        <img src="https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/avatars/00/000f0890a8ff84304784f8075897f3789bb0cff4_full.jpg" alt="Zeli" class="w-10 h-10 rounded-full">
+                        <p class="ml-4 font-semibold text-white">Zeli</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+     <div class="py-24 sm:py-32 text-center">
+        <div class="container mx-auto px-6 max-w-3xl">
+            <h2 data-i18n="final_cta_title" class="font-bold text-white text-fluid-heading">Bereit, dein nächstes Lieblingsspiel zu finden?</h2>
+            <p data-i18n="final_cta_desc" class="mt-4 text-gray-400">Schließe dich tausenden von Gamern an, die ihre perfekten Matches entdeckt haben. Erstelle dein Konto und starte deine KI-gestützte Gaming-Reise.</p>
+            <div class="mt-8">
+                <button data-i18n="final_cta_button" id="open-register-modal-btn-bottom" class="bg-cyan-500 text-gray-900 font-bold px-8 py-3 rounded-lg hover:bg-cyan-400 transition-transform transform hover:scale-105">Konto erstellen</button>
+            </div>
+        </div>
+    </div>
+</section>
      <section id="search-users" class="page-section py-12 fade-in">
     <div class="container mx-auto px-6">
         <h2 data-i18n="community_title" class="font-bold text-white mb-4 text-center text-fluid-heading"></h2>
@@ -1721,6 +1704,23 @@ const translations = {
     "feature_new_crew_desc": "Finde Spieler, die deinen Geschmack teilen. Vergleicht eure Bibliotheken und findet heraus, welche Spiele ihr gemeinsam zocken könnt.",
     "feature_new_progress_title": "Dein Fortschritt",
     "feature_new_progress_desc": "Sammle für deine Aktivitäten auf der Seite Erfahrungspunkte (XP), steige im Level auf und schalte neue Ränge frei.",
+    "hero_new_title": "Finde dein perfektes Gaming-Erlebnis",
+    "hero_new_subtitle": "Unsere KI analysiert deine Stimmung, verfügbare Zeit und Vorlieben, um dir das perfekte Spiel von Steam zu empfehlen.",
+    "hero_new_cta_main": "KI-Beratung starten",
+    "hero_new_cta_secondary": "Mehr erfahren",
+    "why_title": "Warum GameMatch?",
+    "why_subtitle": "Hör auf, endlos durch Steam zu scrollen.",
+    "why_feature1_title": "KI-gestützte Empfehlungen",
+    "why_feature1_desc": "Unsere fortschrittliche KI versteht deine Stimmung und findet das perfekte Spiel für jeden Moment.",
+    "why_feature2_title": "Blitzschnell",
+    "why_feature2_desc": "Erhalte persönliche Empfehlungen in Minuten, statt stundenlang durch endlose Listen zu scrollen.",
+    "why_feature3_title": "Gaming Community",
+    "why_feature3_desc": "Verbinde dich mit Spielern, die deinen Geschmack teilen, baue deine Sammlung auf und entdecke neue Mitspieler.",
+    "popular_games_title": "Beliebte Spiele",
+    "popular_games_subtitle": "Entdecke, was die Community spielt",
+    "final_cta_title": "Bereit, dein nächstes Lieblingsspiel zu finden?",
+    "final_cta_desc": "Schließe dich tausenden von Gamern an, die ihre perfekten Matches entdeckt haben. Erstelle dein Konto und starte deine KI-gestützte Gaming-Reise.",
+    "final_cta_button": "Konto erstellen", 
     }
   },
   en: {
@@ -1925,6 +1925,23 @@ const translations = {
     "feature_new_crew_desc": "Find players who share your taste. Compare your libraries and discover which games you can play together.",
     "feature_new_progress_title": "Your Progress",
     "feature_new_progress_desc": "Earn experience points (XP) for your activities on the site, level up, and unlock new ranks.",
+    "hero_new_title": "Find your perfect Gaming Experience",
+    "hero_new_subtitle": "Our AI analyzes your mood, available time, and preferences to recommend the perfect game from Steam.",
+    "hero_new_cta_main": "Start AI Consultation",
+    "hero_new_cta_secondary": "Learn More",
+    "why_title": "Why GameMatch?",
+    "why_subtitle": "Stop endlessly scrolling through Steam.",
+    "why_feature1_title": "AI-Powered Recommendations",
+    "why_feature1_desc": "Our advanced AI understands your mood and finds the perfect game for any moment.",
+    "why_feature2_title": "Lightning Fast",
+    "why_feature2_desc": "Get personalized game recommendations in minutes, not hours of Browse through endless lists.",
+    "why_feature3_title": "Gaming Community",
+    "why_feature3_desc": "Connect with players who share your taste, build your collection, and discover new gaming buddies.",
+    "popular_games_title": "Popular Games",
+    "popular_games_subtitle": "Discover what the community is playing",
+    "final_cta_title": "Ready to find your next favorite game?",
+    "final_cta_desc": "Join thousands of gamers who've discovered their perfect matches. Create your account and start your AI-powered gaming journey.",
+    "final_cta_button": "Create Account",
     }
   }
 };
@@ -4800,6 +4817,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Alle Tags und Genres erfolgreich geladen.");
     });
     displayFeaturedGame();
+    displayPopularGames();
     handleNavigation();
     window.addEventListener('hashchange', handleNavigation);
 });
@@ -5023,6 +5041,47 @@ function setupPrivacyPolicyAccordion() {
     h2s.forEach(h2 => h2.remove());
 
     container.dataset.accordionInitialized = 'true';
+
+    async function displayPopularGames() {
+    const container = document.getElementById('popular-games-list');
+    if (!container) return;
+    container.innerHTML = `<p class="text-gray-400 text-center col-span-full">${i18next.t('profile_loading')}</p>`;
+
+    try {
+        const query = `
+            fields name, cover.url, summary, genres.name;
+            sort total_rating_count desc;
+            limit 6;
+            where category = 0 & total_rating_count > 1000 & version_parent = null & cover != null;
+        `;
+        const popularGames = await runIGDBQuery(query);
+
+        if (!popularGames || popularGames.length === 0) {
+            container.innerHTML = `<p class="text-gray-500 text-center col-span-full">Spiele konnten nicht geladen werden.</p>`;
+            return;
+        }
+
+        let gamesHtml = popularGames.map(game => {
+            const imageUrl = game.cover ? game.cover.url.replace('t_thumb', 't_cover_big_2x') : 'https://placehold.co/600x400';
+            const genres = game.genres ? game.genres.map(g => g.name).slice(0, 2).join(', ') : 'N/A';
+            return `
+                <div class="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden flex flex-col">
+                    <img src="${imageUrl}" alt="${game.name}" class="h-48 w-full object-cover">
+                    <div class="p-6 flex flex-col flex-grow">
+                        <h3 class="text-xl font-bold text-white">${game.name}</h3>
+                        <p class="text-sm text-cyan-400 mt-1">${genres}</p>
+                        <p class="text-gray-400 mt-4 text-sm line-clamp-3 flex-grow">${game.summary}</p>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        container.innerHTML = gamesHtml;
+
+    } catch (error) {
+        console.error("Fehler beim Laden der beliebten Spiele:", error);
+        container.innerHTML = `<p class="text-red-400 text-center col-span-full">Ein Fehler ist aufgetreten.</p>`;
+    }
+}
 
 </script>
 
