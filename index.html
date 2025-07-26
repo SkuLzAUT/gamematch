@@ -1510,28 +1510,40 @@ const keywordScores = {
     'shooter': { points: 10, type: 'genre', slug: 'shooter', isPrimary: true },
     'strategie': { points: 9, type: 'genre', slug: 'strategy', isPrimary: true },
     'simulation': { points: 9, type: 'genre', slug: 'simulation', isPrimary: true },
+    'plattformer': { points: 9, type: 'genre', slug: 'platform', isPrimary: true },
+    'racing': { points: 9, type: 'genre', slug: 'racing', isPrimary: true },
+    'fighting': { points: 9, type: 'genre', slug: 'fighting', isPrimary: true },
+    'puzzle': { points: 9, type: 'genre', slug: 'puzzle', isPrimary: true },
+    'stealth': { points: 9, type: 'genre', slug: 'stealth', isPrimary: true },
+    'sports': { points: 9, type: 'genre', slug: 'sports', isPrimary: true },
+
 
     // Wichtige Sekundärgenres / Spielmechaniken
-    'action': { points: 5, type: 'genre' },
-    'adventure': { points: 4, type: 'genre' },
+    'action': { points: 3, type: 'genre' },
+    'adventure': { points: 3, type: 'genre' },
     'open-world': { points: 4, type: 'theme' },
-    'survival': { points: 4, type: 'theme' },
+    'survival': { points: 5, type: 'theme' },
     
     // Wichtige Stimmungen & Settings
     'düster': { points: 3, type: 'theme', slugs: ['horror', 'dark-fantasy', 'gothic'] },
-    'fantasy': { points: 3, type: 'theme' },
-    'sci-fi': { points: 3, type: 'theme', slug: 'science-fiction' },
+    'fantasy': { points: 3, type: 'theme', slugs: ['fantasy', 'medieval'] },
+    'sci-fi': { points: 3, type: 'theme', slugs: ['science-fiction', 'sci-fi'] },
     'horror': { points: 3, type: 'theme' },
-    'realistisch': { points: 3, type: 'theme', slugs: ['military', 'modern', 'historical'] },
+    'realistisch': { points: 3, type: 'theme', slugs: ['military', 'modern', 'historical', 'tactical', 'realistic'] },
+    
 
     // Kategorie / Produktionsart
-    'indie': { points: 2, type: 'genre' },
-    'aaa': { points: 1, type: 'category' }, // Geringstes Gewicht, da es nur die Produktion beschreibt
+    'indie': { points: 2, type: 'tag', slugs: ['indie'] },
+    'aaa': {
+  points: 1,
+  type: 'category',
+  slugs: ['open-world', 'first-person', 'third-person', 'realistic']
+},
     
     // Allgemeine Modifikatoren
-    'entspannt': { points: 1, type: 'theme', slugs: ['relaxing', 'casual'] },
-    'kompetitiv': { points: 1, type: 'theme', slugs: ['competitive', 'multiplayer'] },
-    'singleplayer': { points: 1, type: 'theme', slug: 'single-player' }
+    'entspannt': { points: 1, type: 'theme', slugs: ['relaxing', 'casual', 'life-simulator'] },
+    'kompetitiv': { points: 1, type: 'theme', slugs: ['competitive', 'multiplayer', 'esports', 'team-based', 'online'] },
+    'singleplayer': { points: 1, type: 'theme', slugs: ['single-player'] }
 };
 const translations = {
   de: {
