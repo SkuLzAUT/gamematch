@@ -523,11 +523,19 @@ main {
             </div>
         </div>
     </div>
-</section>
-        <section id="matchmaker" class="page-section py-12 fade-in">
-    <div class="container mx-auto px-6">
-        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 md:p-8 max-w-3xl mx-auto shadow-2xl shadow-blue-900/20">
-            <div id="ai-chat-window" class="h-[70vh] flex flex-col">
+<section id="matchmaker" class="page-section py-12 sm:py-16 fade-in">
+    <div class="container mx-auto px-6 max-w-6xl">
+
+        <div class="text-center mb-10">
+            <h2 class="text-base font-semibold leading-7 text-cyan-400">AI Game Matchmaker</h2>
+            <p class="mt-2 font-bold tracking-tight text-white text-fluid-heading">Finde dein perfektes Gaming-Erlebnis</p>
+            <p class="mt-6 text-lg leading-8 text-gray-400 max-w-3xl mx-auto">
+                Führe ein Gespräch mit unserer KI, um dein perfektes Spiel zu entdecken. Je mehr du uns über deine Stimmung und Vorlieben erzählst, desto besser können wir dir helfen!
+            </p>
+        </div>
+
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 md:p-8 max-w-3xl mx-auto shadow-2xl shadow-cyan-900/20">
+            <div id="ai-chat-window" class="h-[60vh] flex flex-col">
                 <div class="flex-grow p-4 space-y-6 overflow-y-auto" id="chat-log"></div>
                 <div id="user-input-area" class="p-4 border-t border-gray-700"></div>
             </div>
@@ -537,11 +545,49 @@ main {
                     <img id="result-img" src="https://placehold.co/600x400/111827/06B6D4?text=GAME" data-i18n="[alt]matchmaker_alt_game_cover" class="w-full mb-4 rounded-lg" loading="lazy" decoding="async">
                     <h3 id="result-title" class="text-4xl font-bold text-cyan-400">Game Title</h3>
                     <p id="result-description" class="text-lg text-gray-100 mt-4 mb-4"></p>
-                    <div id="result-affiliate-links" class="mt-6 flex flex-col sm:flex-row gap-3">
-                </div>
+                    <div id="result-affiliate-links" class="mt-6 flex flex-col sm:flex-row gap-3"></div>
                 </div>
                 <button data-i18n="matchmaker_reset_button" id="reset-quiz" class="mt-8 text-gray-400 hover:text-white underline"></button>
             </div>
+        </div>
+
+        <div class="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+                <h3 class="text-lg font-semibold text-white mb-4">💡 Tipps für bessere Empfehlungen</h3>
+                <ul class="space-y-2 text-gray-400 list-disc list-inside">
+                    <li>Sag uns, wie viel Zeit du zum Spielen hast.</li>
+                    <li>Beschreibe deine aktuelle Stimmung (z.B. entspannt, kompetitiv).</li>
+                    <li>Erwähne Spiele, die du in letzter Zeit gerne gespielt hast.</li>
+                    <li>Gib an, ob du lieber Singleplayer oder Multiplayer spielst.</li>
+                    <li>Teile uns mit, in welcher Art von Welt du gerade eintauchen möchtest.</li>
+                </ul>
+            </div>
+            <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+                <h3 class="text-lg font-semibold text-white mb-4">🔎 Was wir berücksichtigen</h3>
+                <ul class="space-y-2 text-gray-400 list-disc list-inside">
+                    <li>Deine verfügbare Spielzeit</li>
+                    <li>Dein aktuelles Stimmungs- und Energielevel</li>
+                    <li>Deine Gaming-Vorlieben und deine Historie</li>
+                    <li>Plattform-Anforderungen</li>
+                    <li>Community-Bewertungen und Reviews</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="mt-16 text-center">
+             <h3 class="text-2xl font-bold text-white mb-8">Beispiel-Konversationen</h3>
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 text-left">
+                    <h4 class="font-semibold text-white">Kurze Session</h4>
+                    <p class="text-gray-400 mt-2 italic">"Ich habe 30 Minuten, bevor ich weg muss und möchte etwas Entspannendes spielen."</p>
+                    <p class="mt-4"><strong class="text-cyan-400">KI-Empfehlung:</strong> Ein rundenbasiertes Spiel, perfekt zum Entspannen mit friedlichem Farming und einfachen Quests.</p>
+                </div>
+                 <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 text-left">
+                    <h4 class="font-semibold text-white">Kompetitiver Modus</h4>
+                    <p class="text-gray-400 mt-2 italic">"Ich fühle mich wettbewerbsfähig und habe Lust auf einen schnellen FPS-Shooter."</p>
+                    <p class="mt-4"><strong class="text-cyan-400">KI-Empfehlung:</strong> Ein rasanter Arena-Shooter mit kurzen, intensiven Matches, perfekt für kompetitive Spieler.</p>
+                </div>
+             </div>
         </div>
     </div>
 </section>
