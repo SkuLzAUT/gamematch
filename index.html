@@ -3583,7 +3583,6 @@ async function runIGDBQuery(query) {
     if (!response.ok) return [];
     return await response.json();
 }
-
 async function findBestGameMatch() {
     const user = auth.currentUser;
     if (!user && getGuestUsage().count >= 2) {
@@ -3622,17 +3621,17 @@ async function findBestGameMatch() {
 
         const scoredGames = candidateGames
             .map(game => {
-                const gameGenres = new Set(game.genres ? game.genres.map(g => g.slug) : []);
-                const gameThemes = new Set(game.themes ? game.themes.map(t => t.slug) : []);
+                const gameGenres = game.genres ? game.genres.map(g => g.slug) : [];
+                const gameThemes = game.themes ? game.themes.map(t => t.slug) : [];
                 const gameAttributes = new Set([...gameGenres, ...gameThemes]);
                 let score = 0;
                 let matchedKeywords = [];
 
-                // "MUST-HAVE"-CHECK
-                if (mustHaveSlug && !gameGenres.has(mustHaveSlug)) {
-                    return { ...game, score: 0, matchedKeywords: [] }; // Disqualifiziert!
+                if (mustHaveSlug && !gameGenres.includes(mustHaveSlug)) {
+                    return { ...game, score: 0, matchedKeywords: [] };
                 }
 
+                // KORREKTUR: Wir gewichten jetzt, wie gut die Genres passen
                 keywords.forEach(keyword => {
                     const scoreInfo = keywordScores[keyword];
                     if (!scoreInfo) return;
@@ -3641,8 +3640,16 @@ async function findBestGameMatch() {
                     if (targetSlugs.length === 0) targetSlugs.push(keyword);
                     
                     if (targetSlugs.some(slug => gameAttributes.has(slug))) {
-                        score += scoreInfo.points;
-                        matchedKeywords.push(`${keyword} (+${scoreInfo.points})`);
+                        let points = scoreInfo.points;
+                        
+                        // Wenn das Hauptgenre des Spiels (das erste in der Liste)
+                        // genau dem gesuchten Hauptgenre entspricht, gibt es einen RIESEN-Bonus.
+                        if (scoreInfo.isPrimary && gameGenres[0] === (scoreInfo.slug || keyword)) {
+                            points *= 2; // Doppelter Bonus für einen perfekten Genre-Treffer!
+                        }
+                        
+                        score += points;
+                        matchedKeywords.push(`${keyword} (+${points})`);
                     }
                 });
                 return { ...game, score, matchedKeywords };
@@ -3650,13 +3657,12 @@ async function findBestGameMatch() {
             .filter(game => game.score > 0 && !seenGameIds.has(game.id));
 
         if (scoredGames.length === 0) {
-            renderErrorState("Ich konnte leider kein passendes Spiel für diese sehr spezifische Kombination finden. Versuche es mit anderen Kriterien!");
+            renderErrorState("Ich konnte leider kein passendes Spiel für diese sehr spezifische Kombination finden.");
             return;
         }
 
         scoredGames.sort((a, b) => b.score - a.score);
         
-        // Transparenz im Log
         console.log("Top 10 Matches:");
         console.table(scoredGames.slice(0, 10).map(g => ({ Name: g.name, Score: g.score, Matched: g.matchedKeywords.join(', ') })));
 
