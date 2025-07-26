@@ -4768,6 +4768,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('mobile-register-btn')?.addEventListener('click', () => openAuthModal('register'));
     document.getElementById('open-login-modal-btn')?.addEventListener('click', () => openAuthModal('login'));
     document.getElementById('open-register-modal-btn')?.addEventListener('click', () => openAuthModal('register'));
+    document.getElementById('open-register-modal-btn-bottom')?.addEventListener('click', () => openAuthModal('register'));
     document.getElementById('close-auth-modal-btn')?.addEventListener('click', closeAuthModal);
     document.getElementById('auth-modal')?.addEventListener('click', (e) => {
         if (e.target.id === 'auth-modal') closeAuthModal();
