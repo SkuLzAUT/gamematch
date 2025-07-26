@@ -481,10 +481,31 @@ main {
         </div>
     </div>
 </section>
-     <section id="search-users" class="page-section py-12 fade-in">
-    <div class="container mx-auto px-6">
-        <h2 data-i18n="community_title" class="font-bold text-white mb-4 text-center text-fluid-heading"></h2>
-        <p data-i18n="community_subtitle" class="text-gray-400 text-center mb-8"></p>
+    <section id="search-users" class="page-section py-12 fade-in">
+    <div class="container mx-auto px-6 max-w-5xl">
+
+        <div class="text-center mb-12">
+            <h2 data-i18n="community_new_title" class="font-bold text-white text-fluid-heading flex items-center justify-center gap-3">
+                <svg class="h-8 w-8 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.964A4.5 4.5 0 1112 5.25v-2.25m-5.25 4.5a4.5 4.5 0 00-1.372 2.964m-7.5 0a4.5 4.5 0 013.741-2.25m9.75 0a4.5 4.5 0 011.372 2.964M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Gaming Community
+            </h2>
+            <p data-i18n="community_new_subtitle" class="text-gray-400 mt-4 max-w-2xl mx-auto">Verbinde dich mit anderen Gamern, entdecke neue Freunde und teile deine Gaming-Reise.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6 text-center">
+                <p data-i18n="community_stat_members" class="text-sm font-semibold text-gray-400 uppercase">Community-Mitglieder</p>
+                <p id="community-stat-members-count" class="text-3xl font-orbitron font-bold text-cyan-400 mt-2">0</p>
+            </div>
+            <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6 text-center">
+                <p data-i18n="community_stat_activities" class="text-sm font-semibold text-gray-400 uppercase">Kürzliche Aktivitäten</p>
+                <p id="community-stat-activities-count" class="text-3xl font-orbitron font-bold text-cyan-400 mt-2">0</p>
+            </div>
+            <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-6 text-center">
+                <p data-i18n="community_stat_xp" class="text-sm font-semibold text-gray-400 uppercase">Total XP</p>
+                <p id="community-stat-xp-count" class="text-3xl font-orbitron font-bold text-cyan-400 mt-2">0</p>
+            </div>
+        </div>
 
         <div id="community-tabs" class="border-b border-gray-700 mb-8 flex justify-start sm:justify-center gap-6 overflow-x-auto whitespace-nowrap">
             <button data-i18n="community_tab_discover" data-target="community-content-suche" class="community-tab-btn font-semibold pb-3 border-b-2"></button>
@@ -501,12 +522,12 @@ main {
             </div>
 
             <div id="community-content-feed" class="community-tab-content hidden">
-                <div id="activity-feed-list" class="max-w-3xl mx-auto space-y-4">
-                </div>
+                <div id="activity-feed-list" class="max-w-3xl mx-auto space-y-4"></div>
             </div>
         </div>
+
     </div>
-</section>  
+</section> 
 <section id="matchmaker" class="page-section py-12 sm:py-16 fade-in">
     <div class="container mx-auto px-6 max-w-6xl">
 
@@ -1720,7 +1741,12 @@ const translations = {
     "popular_games_subtitle": "Entdecke, was die Community spielt",
     "final_cta_title": "Bereit, dein nächstes Lieblingsspiel zu finden?",
     "final_cta_desc": "Schließe dich tausenden von Gamern an, die ihre perfekten Matches entdeckt haben. Erstelle dein Konto und starte deine KI-gestützte Gaming-Reise.",
-    "final_cta_button": "Konto erstellen", 
+    "final_cta_button": "Konto erstellen",
+     "community_new_title": "Gaming Community",
+    "community_new_subtitle": "Verbinde dich mit anderen Gamern, entdecke neue Freunde und teile deine Gaming-Reise.",
+    "community_stat_members": "Community-Mitglieder",
+    "community_stat_activities": "Kürzliche Aktivitäten",
+    "community_stat_xp": "Gesamt-XP der Top-Spieler", 
     }
   },
   en: {
@@ -1942,6 +1968,11 @@ const translations = {
     "final_cta_title": "Ready to find your next favorite game?",
     "final_cta_desc": "Join thousands of gamers who've discovered their perfect matches. Create your account and start your AI-powered gaming journey.",
     "final_cta_button": "Create Account",
+    "community_new_title": "Gaming Community",
+    "community_new_subtitle": "Connect with fellow gamers, discover new friends, and share your gaming journey.",
+    "community_stat_members": "Community Members",
+    "community_stat_activities": "Recent Activities",
+    "community_stat_xp": "Total XP of Top Players", 
     }
   }
 };
@@ -3361,6 +3392,7 @@ async function handleNavigation() {
     
     if (targetPageId === '#search-users') {
         setupCommunityTabs();
+        displayCommunityStats();
     }
 
     if (targetPageId === '#profile') {
@@ -5092,7 +5124,43 @@ function setupPrivacyPolicyAccordion() {
         container.innerHTML = `<p class="text-red-400 text-center col-span-full">Ein Fehler ist aufgetreten.</p>`;
     }
 }
+async function displayCommunityStats() {
+    const membersCountEl = document.getElementById('community-stat-members-count');
+    const activitiesCountEl = document.getElementById('community-stat-activities-count');
+    const xpCountEl = document.getElementById('community-stat-xp-count');
 
+    if (!membersCountEl) return;
+
+    try {
+        // 1. Community-Mitglieder zählen
+        const usersSnapshot = await db.collection('users').get();
+        const totalUsers = usersSnapshot.size;
+        animateValue(membersCountEl, 0, totalUsers, 1500);
+
+        // 2. Kürzliche Aktivitäten zählen (letzte 7 Tage)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const activitiesSnapshot = await db.collection('activity_feed').where('timestamp', '>=', sevenDaysAgo).get();
+        const recentActivities = activitiesSnapshot.size;
+        animateValue(activitiesCountEl, 0, recentActivities, 1500);
+
+        // 3. Gesamt-XP (Hinweis: Dies ist eine Annäherung)
+        // Das Summieren aller XP ist bei großen Datenbanken schwierig. 
+        // Wir nehmen hier die XP der Top 100 Spieler als repräsentativen Wert.
+        const topUsersSnapshot = await db.collection('users').orderBy('xp', 'desc').limit(100).get();
+        let totalXp = 0;
+        topUsersSnapshot.forEach(doc => {
+            totalXp += doc.data().xp || 0;
+        });
+        animateValue(xpCountEl, 0, totalXp, 1500);
+
+    } catch (error) {
+        console.error("Fehler beim Laden der Community-Statistiken:", error);
+        membersCountEl.textContent = 'N/A';
+        activitiesCountEl.textContent = 'N/A';
+        xpCountEl.textContent = 'N/A';
+    }
+}
 </script>
 
 </body>
