@@ -1505,45 +1505,60 @@ const partners = [
         }
     ];
 const keywordScores = {
-    // Kerngenres (MUSS erfüllt sein, wenn genannt)
-    'rpg': { points: 10, type: 'genre', slug: 'role-playing-games-rpg', isPrimary: true },
-    'shooter': { points: 10, type: 'genre', slug: 'shooter', isPrimary: true },
-    'strategie': { points: 9, type: 'genre', slug: 'strategy', isPrimary: true },
-    'simulation': { points: 9, type: 'genre', slug: 'simulation', isPrimary: true },
-    'plattformer': { points: 9, type: 'genre', slug: 'platform', isPrimary: true },
-    'racing': { points: 9, type: 'genre', slug: 'racing', isPrimary: true },
-    'fighting': { points: 9, type: 'genre', slug: 'fighting', isPrimary: true },
-    'puzzle': { points: 9, type: 'genre', slug: 'puzzle', isPrimary: true },
-    'stealth': { points: 9, type: 'genre', slug: 'stealth', isPrimary: true },
-    'sports': { points: 9, type: 'genre', slug: 'sports', isPrimary: true },
+  // 🎮 Kerngenres (hoch gewichtet)
+  'shooter': { points: 10, type: 'genre', slugs: ['shooter', 'egoshooter', 'fps'] },
+  'rpg': { points: 10, type: 'genre', slugs: ['rpg', 'rollenspiel', 'role-playing-games-rpg'] },
+  'strategie': { points: 9, type: 'genre', slugs: ['strategy', 'strategie', 'real-time-strategy', 'turn-based-strategy'] },
+  'simulation': { points: 9, type: 'genre', slugs: ['simulation', 'simulator', 'sim'] },
+  'plattformer': { points: 9, type: 'genre', slugs: ['platform', 'platformer'] },
+  'racing': { points: 9, type: 'genre', slugs: ['racing', 'rennspiel'] },
+  'fighting': { points: 9, type: 'genre', slugs: ['fighting', 'kampfspiel'] },
+  'puzzle': { points: 9, type: 'genre', slugs: ['puzzle', 'rätselspiel'] },
+  'stealth': { points: 9, type: 'genre', slugs: ['stealth', 'schleichspiel'] },
+  'sports': { points: 9, type: 'genre', slugs: ['sports', 'sport'] },
+  'mmo': { points: 8, type: 'genre', slugs: ['mmo', 'massively-multiplayer'] },
 
+  // ⚙️ Sekundärgenres & Spielmechaniken
+  'action': { points: 4, type: 'genre' },
+  'adventure': { points: 4, type: 'genre' },
+  'open-world': { points: 5, type: 'theme', slugs: ['open-world', 'offene welt'] },
+  'survival': { points: 5, type: 'theme', slugs: ['survival', 'überleben'] },
+  'sandbox': { points: 4, type: 'theme', slugs: ['sandbox'] },
+  'roguelike': { points: 4, type: 'theme', slugs: ['roguelike', 'rogue-lite'] },
+  'story-rich': { points: 3, type: 'theme', slugs: ['story-rich', 'storylastig'] },
 
-    // Wichtige Sekundärgenres / Spielmechaniken
-    'action': { points: 3, type: 'genre' },
-    'adventure': { points: 3, type: 'genre' },
-    'open-world': { points: 4, type: 'theme' },
-    'survival': { points: 5, type: 'theme' },
-    
-    // Wichtige Stimmungen & Settings
-    'düster': { points: 3, type: 'theme', slugs: ['horror', 'dark-fantasy', 'gothic'] },
-    'fantasy': { points: 3, type: 'theme', slugs: ['fantasy', 'medieval'] },
-    'sci-fi': { points: 3, type: 'theme', slugs: ['science-fiction', 'sci-fi'] },
-    'horror': { points: 3, type: 'theme' },
-    'realistisch': { points: 3, type: 'theme', slugs: ['military', 'modern', 'historical', 'tactical', 'realistic'] },
-    
+  // 🧠 Stimmungen & Settings
+  'düster': { points: 3, type: 'theme', slugs: ['horror', 'dark-fantasy', 'gothic', 'düster'] },
+  'fantasy': { points: 3, type: 'theme', slugs: ['fantasy', 'mittelalter', 'medieval'] },
+  'sci-fi': { points: 3, type: 'theme', slugs: ['sci-fi', 'science-fiction'] },
+  'horror': { points: 3, type: 'theme', slugs: ['horror'] },
+  'realistisch': { points: 3, type: 'theme', slugs: ['realistisch', 'military', 'modern', 'historical', 'tactical'] },
+  'post-apokalypse': { points: 3, type: 'theme', slugs: ['post-apocalyptic'] },
+  'dystopie': { points: 2, type: 'theme', slugs: ['dystopian'] },
+  'thriller': { points: 2, type: 'theme' },
+  'cyberpunk': { points: 2, type: 'theme' },
+  'steampunk': { points: 1, type: 'theme' },
+  'krimi': { points: 2, type: 'theme', slugs: ['crime'] },
+  'romantik': { points: 1, type: 'theme', slugs: ['romance'] },
 
-    // Kategorie / Produktionsart
-    'indie': { points: 2, type: 'tag', slugs: ['indie'] },
-    'aaa': {
-  points: 1,
-  type: 'category',
-  slugs: ['open-world', 'first-person', 'third-person', 'realistic']
-},
-    
-    // Allgemeine Modifikatoren
-    'entspannt': { points: 1, type: 'theme', slugs: ['relaxing', 'casual', 'life-simulator'] },
-    'kompetitiv': { points: 1, type: 'theme', slugs: ['competitive', 'multiplayer', 'esports', 'team-based', 'online'] },
-    'singleplayer': { points: 1, type: 'theme', slugs: ['single-player'] }
+  // 🎮 Spielmodi / Perspektive
+  'singleplayer': { points: 2, type: 'theme', slugs: ['single-player', 'solo'] },
+  'coop': { points: 2, type: 'theme', slugs: ['co-op', 'ko-op', 'coop', 'cooperative', 'local-coop', 'couch-coop'] },
+  'multiplayer': { points: 2, type: 'theme', slugs: ['multiplayer', 'online'] },
+  'kompetitiv': { points: 2, type: 'theme', slugs: ['competitive', 'pvp', 'esports', 'team-based', 'ranked', 'kompetitiv'] },
+  'entspannt': { points: 1, type: 'theme', slugs: ['relaxing', 'casual', 'entspannt', 'life-simulator'] },
+  'first-person': { points: 1, type: 'theme' },
+  'third-person': { points: 1, type: 'theme' },
+  'permadeath': { points: 2, type: 'theme', slugs: ['permadeath', 'permadeath-mode'] },
+
+  // 🏗️ Produktionsart / Spielgröße
+  'indie': { points: 2, type: 'tag', slugs: ['indie'] },
+  'aaa': { points: 1, type: 'category', slugs: ['open-world', 'first-person', 'third-person', 'realistic', 'aaa'] },
+
+  // 💻 Plattform (optional zur Einschränkung)
+  'pc': { points: 1, type: 'platform', slugs: ['windows', 'linux', 'pc'] },
+  'konsole': { points: 1, type: 'platform', slugs: ['playstation', 'xbox', 'switch', 'nintendo'] },
+  'mobile': { points: 1, type: 'platform', slugs: ['android', 'ios', 'mobile'] },
 };
 const translations = {
   de: {
