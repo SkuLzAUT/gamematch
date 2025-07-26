@@ -4810,6 +4810,16 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.setItem('giveawayBannerClosed', 'true');
         });
     }
+    const learnMoreButton = document.querySelector('a[href="#why-gamematch"]');
+    if (learnMoreButton) {
+        learnMoreButton.addEventListener('click', (event) => {
+            event.preventDefault(); // Verhindert, dass die URL sich ändert
+            const targetElement = document.getElementById('why-gamematch');
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
     
     // Initialisierungsfunktionen beim ersten Laden der Seite
     incrementVisitCounter();
