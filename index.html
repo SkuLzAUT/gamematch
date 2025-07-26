@@ -1505,35 +1505,32 @@ const partners = [
         }
     ];
 const keywordScores = {
-    // Kerngenres (höchste Priorität, 5-6 Punkte)
-    'rpg': { points: 6, type: 'genre', slug: 'role-playing-games-rpg' },
-    'shooter': { points: 6, type: 'genre', slug: 'shooter' },
-    'strategie': { points: 5, type: 'genre', slug: 'strategy' },
-    'simulation': { points: 5, type: 'genre', slug: 'simulation' },
+    // Kerngenres (höchste Priorität)
+    'shooter': { points: 6, type: 'genre' },
+    'role-playing-games-rpg': { points: 6, type: 'genre' },
+    'strategy': { points: 5, type: 'genre' },
+    'simulation': { points: 5, type: 'genre' },
 
-    // Sekundäre Genres / Spielmechaniken (3-4 Punkte)
-    'action': { points: 4, type: 'genre', slug: 'action' },
-    'abenteuer': { points: 3, type: 'genre', slug: 'adventure' },
-    'indie': { points: 3, type: 'genre', slug: 'indie' },
-    'open-world': { points: 3, type: 'theme', slug: 'open-world' },
-    'survival': { points: 3, type: 'theme', slug: 'survival' },
-
-    // Wichtige Stimmungen & Settings (2 Punkte)
+    // Sekundäre Genres / Spielmechaniken
+    'action': { points: 4, type: 'genre' },
+    'adventure': { points: 3, type: 'genre' },
+    'indie': { points: 3, type: 'genre' },
+    'open-world': { points: 3, type: 'theme' },
+    
+    // Wichtige Stimmungen & Settings
     'düster': { points: 2, type: 'theme', slugs: ['horror', 'dark-fantasy'] },
-    'fantasy': { points: 2, type: 'theme', slug: 'fantasy' },
+    'fantasy': { points: 2, type: 'theme' },
     'sci-fi': { points: 2, type: 'theme', slug: 'science-fiction' },
-    'realistisch': { points: 2, type: 'theme', slugs: ['military', 'modern', 'historical'] },
-    'fantasievoll': { points: 2, type: 'theme', slug: 'fantasy' },
-    'horror': { points: 2, type: 'theme', slug: 'horror' },
+    'realistisch': { points: 2, type: 'theme', slugs: ['military', 'modern'] },
+    'horror': { points: 2, type: 'theme' },
 
-    // Gering gewichtete Modifikatoren (1 Punkt)
-    'aaa': { points: 1, type: 'category' }, // Gering gewichtet, da es eher die Produktionsqualität beschreibt
-    'entspannt': { points: 1, type: 'theme', slugs: ['relaxing', 'casual'] },
+    // Gering gewichtete Modifikatoren
+    'aaa': { points: 1, type: 'category' },
+    'entspannt': { points: 1, type: 'theme', slugs: ['relaxing'] },
     'lustig': { points: 1, type: 'theme', slug: 'comedy' },
-    'spannend': { points: 1, type: 'theme', slugs: ['action', 'thriller', 'mystery'] },
-    'actionreich': { points: 1, type: 'theme', slug: 'action' },
+    'spannend': { points: 1, type: 'theme', slugs: ['action', 'thriller'] },
     'singleplayer': { points: 1, type: 'theme', slug: 'single-player' },
-    'multiplayer': { points: 1, type: 'theme', slugs: ['multiplayer', 'co-operative', 'online'] },
+    'multiplayer': { points: 1, type: 'theme', slugs: ['multiplayer'] }
 };
 const translations = {
   de: {
@@ -3530,37 +3527,54 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
         setLoading(false);
     }
 }
+// ======================================================================
+// DIE NEUE, SCORE-BASIERTE EMPFEHLUNGS-ENGINE
+// ======================================================================
+
+// Extrahiert Keywords aus dem Chat basierend auf unserer Score-Liste
 function extractKeywordsFromChat(chatHistory, scoreDefinition) {
     const conversationText = chatHistory.map(entry => entry.parts[0].text).join(' ').toLowerCase();
-    const foundKeywords = [];
+    const foundKeywords = new Set();
     
-    // Wir suchen nach den definierten Keywords im Chat
     for (const keyword in scoreDefinition) {
         if (conversationText.includes(keyword)) {
-            foundKeywords.push(keyword);
+            // Fügt die "slugs" hinzu, wenn vorhanden (z.B. für "düster" -> "horror")
+            if (scoreDefinition[keyword].slugs) {
+                scoreDefinition[keyword].slugs.forEach(slug => foundKeywords.add(slug));
+            } else if (scoreDefinition[keyword].slug) {
+                 foundKeywords.add(scoreDefinition[keyword].slug);
+            } else {
+                foundKeywords.add(keyword);
+            }
         }
     }
-    console.log("Extrahierte User-Wünsche:", foundKeywords);
-    return foundKeywords;
+    console.log("Extrahierte Such-Keywords:", Array.from(foundKeywords));
+    return Array.from(foundKeywords);
 }
+
+// Führt die eigentliche Abfrage an unser Backend aus
+async function runIGDBQuery(query) {
+    const response = await fetch('/.netlify/functions/call-igdb', { method: 'POST', body: JSON.stringify({ query }) });
+    if (!response.ok) return [];
+    return await response.json();
+}
+
+// Die neue Hauptfunktion, die alles steuert
 async function findBestGameMatch() {
     const user = auth.currentUser;
     if (!user && getGuestUsage().count >= 2) {
         renderGuestLimitMessage();
         return;
     }
-
-    renderSystemMessage("Analysiere deine Wünsche, bewerte Top-Spiele und finde dein perfektes Match...");
+    renderSystemMessage("Analysiere deine Wünsche, bewerte Top-Spiele und finde dein Match...");
 
     try {
-        // 1. Keywords aus dem Chat extrahieren (z.B. ['rpg', 'düster', 'aaa'])
         const keywords = extractKeywordsFromChat(chatHistory, keywordScores);
         if (keywords.length === 0) {
             renderErrorState("Ich konnte deine Wünsche nicht klar verstehen. Bitte sei etwas spezifischer.");
             return;
         }
 
-        // 2. Eine breite Liste an Kandidaten von IGDB holen (Top 250)
         const query = `
             fields name, summary, cover.url, genres.slug, themes.slug;
             sort total_rating_count desc;
@@ -3573,32 +3587,27 @@ async function findBestGameMatch() {
             return;
         }
 
-        // 3. Bereits gesehene/bewertete Spiele des Nutzers holen
         let seenGameIds = new Set();
         if (user) {
             const seenGamesSnapshot = await db.collection("users").doc(user.uid).collection("suggestedGames").get();
             seenGameIds = new Set(seenGamesSnapshot.docs.map(doc => doc.data().rawgId));
         }
 
-        // 4. Spiele bewerten (Scoring) und filtern
         const scoredGames = candidateGames
             .map(game => {
                 let score = 0;
-                const gameGenres = new Set(game.genres ? game.genres.map(g => g.slug) : []);
-                const gameThemes = new Set(game.themes ? game.themes.map(t => t.slug) : []);
+                const gameAttributes = new Set([
+                    ...(game.genres ? game.genres.map(g => g.slug) : []),
+                    ...(game.themes ? game.themes.map(t => t.slug) : [])
+                ]);
 
                 keywords.forEach(keyword => {
-                    const scoreInfo = keywordScores[keyword];
-                    if (!scoreInfo) return;
-
-                    // Erstelle eine Liste der relevanten Slugs für das Keyword
-                    const targetSlugs = scoreInfo.slugs || [scoreInfo.slug].filter(Boolean);
-                    
-                    // Prüfe, ob das Spiel einen der Target-Slugs hat
-                    const isMatch = targetSlugs.some(slug => gameGenres.has(slug) || gameThemes.has(slug));
-                    
-                    if (isMatch) {
-                        score += scoreInfo.points;
+                    if (gameAttributes.has(keyword)) {
+                        // Finde die Punktzahl für das Keyword
+                        const scoreInfo = Object.values(keywordScores).find(val => (val.slugs && val.slugs.includes(keyword)) || val.slug === keyword || Object.keys(keywordScores).includes(keyword));
+                        if(scoreInfo) {
+                            score += scoreInfo.points;
+                        }
                     }
                 });
                 return { ...game, score };
@@ -3610,31 +3619,19 @@ async function findBestGameMatch() {
             return;
         }
 
-        // 5. Nach Score sortieren
         scoredGames.sort((a, b) => b.score - a.score);
         
         console.table(scoredGames.slice(0, 10).map(g => ({ Name: g.name, Score: g.score })));
 
-        // 6. Das beste Spiel auswählen und für Abwechslung sorgen
-        // Wir nehmen ein zufälliges Spiel aus den Top 3, um Wiederholungen zu vermeiden
-        const topTier = scoredGames.slice(0, 3);
+        const topTier = scoredGames.slice(0, 5); // Nehmen wir die Top 5 für mehr Abwechslung
         const chosenGame = topTier[Math.floor(Math.random() * topTier.length)];
         
         console.log("Bestes Match:", chosenGame.name, "Score:", chosenGame.score);
 
-        // 7. KI die Beschreibung schreiben lassen
-        const gameFacts = {
-            name: chosenGame.name,
-            genres: (chosenGame.genres || []).map(g => g.name).join(', '),
-            themes: (chosenGame.themes || []).map(t => t.name).join(', '),
-        };
-        const descriptionPrompt = `Write a short, exciting recommendation for the following game based on these facts. Game Name: ${gameFacts.name}, Genres: ${gameFacts.genres}, Themes/Setting: ${gameFacts.themes}. Based on these facts, create the recommendation text.`;
-        
-        const descriptionText = await callGeminiAPI(descriptionPrompt, systemPromptDescription, false);
+        const descriptionText = await createDescriptionForGame(chosenGame);
         if (descriptionText) {
             showResult(chosenGame, descriptionText, scoredGames);
         } else {
-            // Fallback, falls die KI fehlschlägt
             const fallbackDescription = `Basierend auf deiner Suche scheint "${chosenGame.name}" ein exzellentes Match zu sein!`;
             showResult(chosenGame, fallbackDescription, scoredGames);
         }
@@ -3644,10 +3641,17 @@ async function findBestGameMatch() {
         renderErrorState("Ein schwerwiegender Fehler ist aufgetreten.");
     }
 }
-async function runIGDBQuery(query) {
-    const response = await fetch('/.netlify/functions/call-igdb', { method: 'POST', body: JSON.stringify({ query }) });
-    if (!response.ok) return [];
-    return await response.json();
+
+// Neue Hilfsfunktion für die KI-Beschreibung
+async function createDescriptionForGame(game) {
+     const gameFacts = {
+        name: game.name,
+        genres: (game.genres || []).map(g => g.name).join(', '),
+        themes: (game.themes || []).map(t => t.name).join(', '),
+    };
+    const descriptionPrompt = `Write a short, exciting recommendation for the game "${gameFacts.name}". Its genres are ${gameFacts.genres} and its themes are ${gameFacts.themes}. Based on these facts, create the recommendation text in German, addressing the user with "Du".`;
+    
+    return await callGeminiAPI(descriptionPrompt, systemPromptDescription, false);
 }
 function displayStars(container, avgRating, count) {
     let starsHtml = '';
