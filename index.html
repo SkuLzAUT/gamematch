@@ -1505,32 +1505,33 @@ const partners = [
         }
     ];
 const keywordScores = {
-    // Kerngenres (höchste Priorität)
-    'shooter': { points: 6, type: 'genre' },
-    'role-playing-games-rpg': { points: 6, type: 'genre' },
-    'strategy': { points: 5, type: 'genre' },
-    'simulation': { points: 5, type: 'genre' },
+    // Kerngenres (MUSS erfüllt sein, wenn genannt)
+    'rpg': { points: 10, type: 'genre', slug: 'role-playing-games-rpg', isPrimary: true },
+    'shooter': { points: 10, type: 'genre', slug: 'shooter', isPrimary: true },
+    'strategie': { points: 9, type: 'genre', slug: 'strategy', isPrimary: true },
+    'simulation': { points: 9, type: 'genre', slug: 'simulation', isPrimary: true },
 
-    // Sekundäre Genres / Spielmechaniken
-    'action': { points: 4, type: 'genre' },
-    'adventure': { points: 3, type: 'genre' },
-    'indie': { points: 3, type: 'genre' },
-    'open-world': { points: 3, type: 'theme' },
+    // Wichtige Sekundärgenres / Spielmechaniken
+    'action': { points: 5, type: 'genre' },
+    'adventure': { points: 4, type: 'genre' },
+    'open-world': { points: 4, type: 'theme' },
+    'survival': { points: 4, type: 'theme' },
     
     // Wichtige Stimmungen & Settings
-    'düster': { points: 2, type: 'theme', slugs: ['horror', 'dark-fantasy'] },
-    'fantasy': { points: 2, type: 'theme' },
-    'sci-fi': { points: 2, type: 'theme', slug: 'science-fiction' },
-    'realistisch': { points: 2, type: 'theme', slugs: ['military', 'modern'] },
-    'horror': { points: 2, type: 'theme' },
+    'düster': { points: 3, type: 'theme', slugs: ['horror', 'dark-fantasy', 'gothic'] },
+    'fantasy': { points: 3, type: 'theme' },
+    'sci-fi': { points: 3, type: 'theme', slug: 'science-fiction' },
+    'horror': { points: 3, type: 'theme' },
+    'realistisch': { points: 3, type: 'theme', slugs: ['military', 'modern', 'historical'] },
 
-    // Gering gewichtete Modifikatoren
-    'aaa': { points: 1, type: 'category' },
-    'entspannt': { points: 1, type: 'theme', slugs: ['relaxing'] },
-    'lustig': { points: 1, type: 'theme', slug: 'comedy' },
-    'spannend': { points: 1, type: 'theme', slugs: ['action', 'thriller'] },
-    'singleplayer': { points: 1, type: 'theme', slug: 'single-player' },
-    'multiplayer': { points: 1, type: 'theme', slugs: ['multiplayer'] }
+    // Kategorie / Produktionsart
+    'indie': { points: 2, type: 'genre' },
+    'aaa': { points: 1, type: 'category' }, // Geringstes Gewicht, da es nur die Produktion beschreibt
+    
+    // Allgemeine Modifikatoren
+    'entspannt': { points: 1, type: 'theme', slugs: ['relaxing', 'casual'] },
+    'kompetitiv': { points: 1, type: 'theme', slugs: ['competitive', 'multiplayer'] },
+    'singleplayer': { points: 1, type: 'theme', slug: 'single-player' }
 };
 const translations = {
   de: {
@@ -3537,40 +3538,32 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
 
 // Extrahiert Keywords aus dem Chat basierend auf unserer Score-Liste
 function extractKeywordsFromChat(chatHistory, scoreDefinition) {
-    const conversationText = chatHistory.map(entry => entry.parts[0].text).join(' ').toLowerCase();
-    const foundKeywords = new Set();
+    const conversationText = " " + chatHistory.map(entry => entry.parts[0].text).join(' ').toLowerCase() + " ";
+    const foundKeywords = [];
     
     for (const keyword in scoreDefinition) {
-        if (conversationText.includes(keyword)) {
-            // Fügt die "slugs" hinzu, wenn vorhanden (z.B. für "düster" -> "horror")
-            if (scoreDefinition[keyword].slugs) {
-                scoreDefinition[keyword].slugs.forEach(slug => foundKeywords.add(slug));
-            } else if (scoreDefinition[keyword].slug) {
-                 foundKeywords.add(scoreDefinition[keyword].slug);
-            } else {
-                foundKeywords.add(keyword);
-            }
+        // Sucht nach dem exakten Wort, um Teil-Matches zu vermeiden
+        if (new RegExp(`\\s${keyword}\\s`, 'i').test(conversationText)) {
+            foundKeywords.push(keyword);
         }
     }
-    console.log("Extrahierte Such-Keywords:", Array.from(foundKeywords));
-    return Array.from(foundKeywords);
+    console.log("Präzise extrahierte User-Wünsche:", foundKeywords);
+    return foundKeywords;
 }
 
-// Führt die eigentliche Abfrage an unser Backend aus
 async function runIGDBQuery(query) {
     const response = await fetch('/.netlify/functions/call-igdb', { method: 'POST', body: JSON.stringify({ query }) });
     if (!response.ok) return [];
     return await response.json();
 }
 
-// Die neue Hauptfunktion, die alles steuert
 async function findBestGameMatch() {
     const user = auth.currentUser;
     if (!user && getGuestUsage().count >= 2) {
         renderGuestLimitMessage();
         return;
     }
-    renderSystemMessage("Analysiere deine Wünsche, bewerte Top-Spiele und finde dein Match...");
+    renderSystemMessage("Analysiere deine Wünsche, bewerte Top-Spiele und finde dein perfektes Match...");
 
     try {
         const keywords = extractKeywordsFromChat(chatHistory, keywordScores);
@@ -3596,38 +3589,51 @@ async function findBestGameMatch() {
             const seenGamesSnapshot = await db.collection("users").doc(user.uid).collection("suggestedGames").get();
             seenGameIds = new Set(seenGamesSnapshot.docs.map(doc => doc.data().rawgId));
         }
+        
+        const primaryGenreKeyword = keywords.find(kw => keywordScores[kw]?.isPrimary);
+        const mustHaveSlug = primaryGenreKeyword ? (keywordScores[primaryGenreKeyword].slug || primaryGenreKeyword) : null;
 
         const scoredGames = candidateGames
             .map(game => {
+                const gameGenres = new Set(game.genres ? game.genres.map(g => g.slug) : []);
+                const gameThemes = new Set(game.themes ? game.themes.map(t => t.slug) : []);
+                const gameAttributes = new Set([...gameGenres, ...gameThemes]);
                 let score = 0;
-                const gameAttributes = new Set([
-                    ...(game.genres ? game.genres.map(g => g.slug) : []),
-                    ...(game.themes ? game.themes.map(t => t.slug) : [])
-                ]);
+                let matchedKeywords = [];
+
+                // "MUST-HAVE"-CHECK
+                if (mustHaveSlug && !gameGenres.has(mustHaveSlug)) {
+                    return { ...game, score: 0, matchedKeywords: [] }; // Disqualifiziert!
+                }
 
                 keywords.forEach(keyword => {
-                    if (gameAttributes.has(keyword)) {
-                        // Finde die Punktzahl für das Keyword
-                        const scoreInfo = Object.values(keywordScores).find(val => (val.slugs && val.slugs.includes(keyword)) || val.slug === keyword || Object.keys(keywordScores).includes(keyword));
-                        if(scoreInfo) {
-                            score += scoreInfo.points;
-                        }
+                    const scoreInfo = keywordScores[keyword];
+                    if (!scoreInfo) return;
+
+                    const targetSlugs = scoreInfo.slugs || [scoreInfo.slug].filter(Boolean);
+                    if (targetSlugs.length === 0) targetSlugs.push(keyword);
+                    
+                    if (targetSlugs.some(slug => gameAttributes.has(slug))) {
+                        score += scoreInfo.points;
+                        matchedKeywords.push(`${keyword} (+${scoreInfo.points})`);
                     }
                 });
-                return { ...game, score };
+                return { ...game, score, matchedKeywords };
             })
             .filter(game => game.score > 0 && !seenGameIds.has(game.id));
 
         if (scoredGames.length === 0) {
-            renderErrorState("Ich konnte leider kein passendes Spiel für diese Kombination finden. Versuche es mit anderen Kriterien!");
+            renderErrorState("Ich konnte leider kein passendes Spiel für diese sehr spezifische Kombination finden. Versuche es mit anderen Kriterien!");
             return;
         }
 
         scoredGames.sort((a, b) => b.score - a.score);
         
-        console.table(scoredGames.slice(0, 10).map(g => ({ Name: g.name, Score: g.score })));
+        // Transparenz im Log
+        console.log("Top 10 Matches:");
+        console.table(scoredGames.slice(0, 10).map(g => ({ Name: g.name, Score: g.score, Matched: g.matchedKeywords.join(', ') })));
 
-        const topTier = scoredGames.slice(0, 5); // Nehmen wir die Top 5 für mehr Abwechslung
+        const topTier = scoredGames.slice(0, 5);
         const chosenGame = topTier[Math.floor(Math.random() * topTier.length)];
         
         console.log("Bestes Match:", chosenGame.name, "Score:", chosenGame.score);
@@ -3645,8 +3651,6 @@ async function findBestGameMatch() {
         renderErrorState("Ein schwerwiegender Fehler ist aufgetreten.");
     }
 }
-
-// Neue Hilfsfunktion für die KI-Beschreibung
 async function createDescriptionForGame(game) {
      const gameFacts = {
         name: game.name,
