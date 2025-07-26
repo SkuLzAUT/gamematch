@@ -3354,11 +3354,15 @@ function startConversation() {
     ui.chatLog.innerHTML = '';
     ui.userInputArea.innerHTML = '';
 
-    // KORREKTUR: Prüft auf gespeicherten Verlauf
+    // KORREKTUR: Lösche einen eventuell alten Chat-Verlauf, um frisch zu starten.
+    localStorage.removeItem('chatHistory');
+    chatHistory = []; 
+    
+    // Prüft auf einen (jetzt leeren) gespeicherten Verlauf und startet die erste Nachricht.
     const savedHistory = localStorage.getItem('chatHistory');
     if (savedHistory) {
         chatHistory = JSON.parse(savedHistory);
-        // Stelle das bisherige Gespräch wieder her
+        // Stelle das bisherige Gespräch wieder her (wird leer sein)
         chatHistory.forEach(entry => {
             if (entry.role === 'user') {
                  const userContainer = document.createElement('div');
@@ -4292,7 +4296,7 @@ async function showResult(finalGame, finalDescription, igdbResults) {
 
         const resultContainer = ui.resultContainer;
         
-        // KORREKTUR: Nutzt die korrekte Bild-URL aus dem 'cover'-Objekt von IGDB
+        // Nutzt die korrekte Bild-URL aus dem 'cover'-Objekt von IGDB
         const imageUrl = finalGame.cover ? finalGame.cover.url.replace('t_thumb', 't_cover_big') : 'https://placehold.co/600x400';
         
         resultContainer.querySelector('#result-img').src = imageUrl;
@@ -4342,6 +4346,11 @@ async function showResult(finalGame, finalDescription, igdbResults) {
         if (!document.querySelector('.confetti-canvas-active')) {
              fireConfetti();
         }
+
+        // KORREKTUR: Lösche den Chat-Verlauf, nachdem ein Ergebnis angezeigt wurde.
+        localStorage.removeItem('chatHistory');
+        chatHistory = []; // Setze auch die Variable im Speicher zurück.
+
     } catch (e) {
         console.error("Error in showResult:", e);
         renderErrorState("Fehler beim Anzeigen des finalen Ergebnisses.");
