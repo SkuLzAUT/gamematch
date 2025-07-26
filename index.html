@@ -2415,24 +2415,26 @@ async function signInWithGoogle() {
         const isNewUser = result.additionalUserInfo.isNewUser;
 
         if (isNewUser) {
+            // KORREKTUR: Fügt alle notwendigen Start-Felder für neue Google-Nutzer hinzu.
             await db.collection("users").doc(user.uid).set({
                 email: user.email,
                 username: user.displayName || 'Google User',
                 avatarUrl: user.photoURL,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                xp: 0,
-                level: 1,
+                xp: 0, // Fehlte vorher
+                level: 1, // Fehlte vorher
                 isBanned: false,
-                referralCode: generateReferralCode(), // 
-                referralCount: 0, // 
-                referredBy: null // 
+                referralCode: generateReferralCode(),
+                referralCount: 0,
+                referredBy: null
             });
             
             alert(i18next.t('alert_google_register_success'));
 
         } else {
             const userDoc = await db.collection('users').doc(user.uid).get();
-            // Wenn der Nutzer wiederkehrt, aber aus irgendeinem Grund kein DB-Eintrag existiert, erstelle ihn.
+            
+            // Fallback: Wenn ein wiederkehrender Nutzer aus irgendeinem Grund keinen DB-Eintrag hat
             if (!userDoc.exists) {
                 await db.collection("users").doc(user.uid).set({
                     email: user.email,
@@ -2441,7 +2443,10 @@ async function signInWithGoogle() {
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     xp: 0,
                     level: 1,
-                    isBanned: false
+                    isBanned: false,
+                    referralCode: generateReferralCode(),
+                    referralCount: 0,
+                    referredBy: null
                 });
             } else if (userDoc.data().isBanned === true) {
                 // Wenn der Nutzer existiert und gesperrt ist, logge ihn aus.
@@ -2457,8 +2462,9 @@ async function signInWithGoogle() {
         closeAuthModal();
 
     } catch (error) {
+        console.error("Google Sign-In Fehler:", error); // Bessere Fehlermeldung für dich
         alert(i18next.t('alert_google_signin_error', { errorCode: error.code, errorMessage: error.message }));
-    }
+   }
 }
  async function handleLogout() {
     try {
