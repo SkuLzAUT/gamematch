@@ -717,6 +717,19 @@ main {
             <p id="daily-challenge-text" class="text-yellow-200 mt-1"></p>
         </div>
     </div>
+    <div id="daily-challenge-container" class="hidden ...">
+            </div>
+
+        <div class="mt-8 mx-auto max-w-md p-4 bg-gray-900/50 border border-gray-700 rounded-lg text-left">
+            <h4 class="font-bold text-white text-lg text-center mb-4">So sammelst du XP</h4>
+            <ul class="space-y-2 text-gray-300">
+                <li class="flex justify-between"><span>Spiel-Empfehlung liken:</span> <span class="font-semibold text-green-400">+15 XP</span></li>
+                <li class="flex justify-between"><span>Kommentar schreiben:</span> <span class="font-semibold text-green-400">+10 XP</span></li>
+                <li class="flex justify-between"><span>Spiel bewerten:</span> <span class="font-semibold text-green-400">+5 XP</span></li>
+                <li class="flex justify-between"><span>Tägliche Challenge abschließen:</span> <span class="font-semibold text-yellow-400">+25 XP</span></li>
+            </ul>
+        </div>
+    </div> 
 
     <div id="profile-content-news" class="profile-tab-content space-y-4">
         </div>
@@ -3299,11 +3312,17 @@ function handleResponse(userText) {
     ui.chatLog.appendChild(userContainer);
     ui.chatLog.scrollTop = ui.chatLog.scrollHeight;
     lastUserInput = userText;
+
+    // KORREKTUR: Speichere den Chat-Verlauf nach der Nutzer-Eingabe
+    chatHistory.push({ role: "user", parts: [{ text: userText }] });
+    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
     
-    callGeminiAPI(userText, systemPromptConversation, true)
-        .then(responseText => {
-            if (responseText) handleAIResponse(responseText, processConversationStep);
-        });
+    // Rufe die KI auf (der Rest bleibt gleich)
+    (async () => {
+        const responseText = await callGeminiAPI(userText, systemPromptConversation, true);
+        if (!responseText) return;
+        handleAIResponse(responseText, processConversationStep);
+    })();
 }
 function renderInteraction({ text, inputType, placeholder, isComplete = false }) {
     const aiContainer = document.createElement('div');
@@ -3333,14 +3352,37 @@ function renderInteraction({ text, inputType, placeholder, isComplete = false })
     }
 }
 function startConversation() {
-            chatHistory = []; 
-            ui.chatLog.innerHTML = '';
-            ui.userInputArea.innerHTML = '';
-            ui.resultContainer.classList.add('hidden');
-            ui.chatWindow.style.display = 'flex';
-            const initialAIMessage = i18next.t('matchmaker_initial_greeting');
-            renderInteraction({ text: initialAIMessage, inputType: 'text', placeholder: i18next.t('matchmaker_initial_placeholder') });
-        }
+    ui.resultContainer.classList.add('hidden');
+    ui.chatWindow.style.display = 'flex';
+    ui.chatLog.innerHTML = '';
+    ui.userInputArea.innerHTML = '';
+
+    // KORREKTUR: Prüft auf gespeicherten Verlauf
+    const savedHistory = localStorage.getItem('chatHistory');
+    if (savedHistory) {
+        chatHistory = JSON.parse(savedHistory);
+        // Stelle das bisherige Gespräch wieder her
+        chatHistory.forEach(entry => {
+            if (entry.role === 'user') {
+                 const userContainer = document.createElement('div');
+                 userContainer.className = 'user-bubble-container self-end w-full flex flex-col items-end';
+                 userContainer.innerHTML = `<span class="text-xs text-gray-400 mr-3 mb-1">Du</span><div class="bg-blue-600 rounded-lg rounded-br-none px-4 py-3">${sanitizeHTML(entry.parts[0].text)}</div>`;
+                 ui.chatLog.appendChild(userContainer);
+            } else if (entry.role === 'model') {
+                 const aiContainer = document.createElement('div');
+                 aiContainer.className = 'ai-bubble-container self-start w-full flex flex-col items-start';
+                 aiContainer.innerHTML = `<span class="text-xs text-cyan-400 ml-3 mb-1">GameMatch KI</span><div class="bg-gray-700 rounded-lg rounded-bl-none px-4 py-3">${sanitizeHTML(entry.parts[0].text.replace(/\\n/g, '<br>'))}</div>`;
+                 ui.chatLog.appendChild(aiContainer);
+            }
+        });
+        // Setze das Eingabefeld für die nächste Antwort
+        renderInteraction({ text: '', inputType: 'text', placeholder: 'Deine Antwort...' });
+    } else {
+        chatHistory = []; 
+        const initialAIMessage = i18next.t('matchmaker_initial_greeting');
+        renderInteraction({ text: initialAIMessage, inputType: 'text', placeholder: i18next.t('matchmaker_initial_placeholder') });
+    }
+}
 async function handleNavigation() {
     const hash = window.location.hash.substring(1);
     const [pageId, params] = hash.split('?');
@@ -4964,46 +5006,56 @@ async function displayGamingNews() {
 async function displayFeaturedGame() {
     const container = document.getElementById('featured-game-card');
     if (!container) return;
+
+    const today = new Date().toDateString();
+    const cachedGameData = localStorage.getItem('featuredGame');
+    
+    if (cachedGameData) {
+        const { date, game } = JSON.parse(cachedGameData);
+        if (date === today && game) {
+            console.log("Lade 'Spiel des Tages' aus dem Cache.");
+            renderFeaturedGame(game); // Rendere das gespeicherte Spiel
+            return;
+        }
+    }
+
+    // Wenn kein gültiges Spiel im Cache ist, hole ein neues
     container.innerHTML = `<p class="text-gray-400">${i18next.t('profile_loading')}</p>`;
-
     try {
-        // Holt ein zufälliges, hoch bewertetes Spiel
         const randomOffset = Math.floor(Math.random() * 200);
-        const query = `
-            fields name, cover.url, summary;
-            where total_rating_count > 500 & category = 0 & version_parent = null;
-            sort total_rating_count desc;
-            limit 1;
-            offset ${randomOffset};
-        `;
-
-        const response = await fetch('/.netlify/functions/call-igdb', {
-            method: 'POST',
-            body: JSON.stringify({ query: query })
-        });
-        const games = await response.json();
+        const query = `fields name, cover.url, summary; where total_rating_count > 500 & category = 0 & version_parent = null; sort total_rating_count desc; limit 1; offset ${randomOffset};`;
+        const games = await runIGDBQuery(query);
         if (!games || games.length === 0) throw new Error("Kein Spiel gefunden.");
 
         const game = games[0];
-        const imageUrl = game.cover ? game.cover.url.replace('t_thumb', 't_cover_big') : '';
+        renderFeaturedGame(game); // Rendere das neue Spiel
         
-        container.innerHTML = `
-            <div class="max-w-md mx-auto bg-gray-800 rounded-xl shadow-lg overflow-hidden md:max-w-2xl border border-gray-700">
-              <div class="md:flex">
-                <div class="md:flex-shrink-0">
-                  <img class="h-48 w-full object-cover md:h-full md:w-48" src="${imageUrl}" alt="Cover von ${game.name}">
-                </div>
-                <div class="p-8 text-left">
-                  <h3 class="text-2xl font-bold text-white">${sanitizeHTML(game.name)}</h3>
-                  <p class="mt-2 text-gray-400 line-clamp-4">${sanitizeHTML(game.summary)}</p>
-                </div>
-              </div>
-            </div>
-        `;
+        // Speichere das neue Spiel mit dem heutigen Datum im Cache
+        localStorage.setItem('featuredGame', JSON.stringify({ date: today, game: game }));
+
     } catch (e) {
         console.error("Fehler beim Laden des Spiel des Tages:", e);
-        container.innerHTML = ''; // Bei Fehler einfach ausblenden
+        container.innerHTML = '';
     }
+}
+
+// NEUE HILFSFUNKTION: Bündelt die Anzeige-Logik
+function renderFeaturedGame(game) {
+    const container = document.getElementById('featured-game-card');
+    const imageUrl = game.cover ? game.cover.url.replace('t_thumb', 't_cover_big') : '';
+    container.innerHTML = `
+        <div class="max-w-md mx-auto bg-gray-800 rounded-xl shadow-lg overflow-hidden md:max-w-2xl border border-gray-700">
+          <div class="md:flex">
+            <div class="md:flex-shrink-0">
+              <img class="h-48 w-full object-cover md:h-full md:w-48" src="${imageUrl}" alt="Cover von ${game.name}">
+            </div>
+            <div class="p-8 text-left">
+              <h3 class="text-2xl font-bold text-white">${sanitizeHTML(game.name)}</h3>
+              <p class="mt-2 text-gray-400 line-clamp-4">${sanitizeHTML(game.summary)}</p>
+            </div>
+          </div>
+        </div>
+    `;
 }
 function setupPrivacyPolicyAccordion() {
     const container = document.getElementById('privacy-content');
