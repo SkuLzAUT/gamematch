@@ -4297,8 +4297,9 @@ function normalizeGameData(game, source = 'igdb') {
             cover: game.cover, // Behalte die originale IGDB-Struktur
             summary: game.summary || '',
             genres: game.genres || [],
-            themes: game.themes || []
+            themes: game.themes || [],
         };
+    }
     }
 async function openCommentModal(gameId, title, imageUrl, description, isOwnProfile) {
     const modal = document.getElementById('game-detail-modal');
@@ -5299,8 +5300,6 @@ async function displayCommunityStats() {
         xpCountEl.textContent = 'N/A';
     }
 }
-}
-
 </script>
 
 </body>
