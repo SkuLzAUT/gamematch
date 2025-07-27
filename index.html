@@ -5222,12 +5222,6 @@ function setupPrivacyPolicyAccordion() {
     
     container.dataset.accordionInitialized = 'true';
 }
-    // Entferne die ursprünglichen, nun duplizierten Elemente
-    contentToWrap.forEach(el => el.remove());
-    h2s.forEach(h2 => h2.remove());
-
-    container.dataset.accordionInitialized = 'true';
-}
     async function displayPopularGames() {
     const container = document.getElementById('popular-games-list');
     if (!container) return;
@@ -5305,6 +5299,8 @@ async function displayCommunityStats() {
         xpCountEl.textContent = 'N/A';
     }
 }
+}
+
 </script>
 
 </body>
