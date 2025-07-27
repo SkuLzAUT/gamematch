@@ -4037,7 +4037,7 @@ async function findBestGameMatch() {
     renderSystemMessage("Analysiere deine Wünsche und finde dein perfektes Match...");
 
     try {
-        const keywords = extractKeywordsFromChat(chatHistory, keywordScores);
+        const keywords = await extractKeywordsFromChat(chatHistory, keywordScores);
         console.log("🎯 Extrahierte Keywords:", keywords);
         
         if (keywords.length === 0) {
