@@ -1803,6 +1803,60 @@ const keywordScores = {
     'management': { points: 8, type: 'feature', slugs: ['management'] },
     'wirtschaft': { points: 8, type: 'feature', slugs: ['economy'] },
     'ressourcen': { points: 6, type: 'feature', slugs: ['resource-management'] },
+
+// ========================================
+// PVP/MULTIPLAYER SPEZIFISCH
+// ========================================
+'pvp': { points: 12, type: 'feature', slugs: ['pvp', 'competitive', 'multiplayer'] },
+'player-vs-player': { points: 12, type: 'feature', slugs: ['pvp', 'competitive'] },
+'versus': { points: 8, type: 'feature', slugs: ['pvp'] },
+'gegen-andere': { points: 8, type: 'feature', slugs: ['pvp', 'multiplayer'] },
+
+// ========================================
+// KOMPETITIVE SHOOTER SPEZIFISCH  
+// ========================================
+'taktisch-shooter': { points: 15, type: 'genre', slugs: ['tactical', 'shooter'], isPrimary: true },
+'tactical-shooter': { points: 15, type: 'genre', slugs: ['tactical', 'shooter'], isPrimary: true },
+'team-shooter': { points: 12, type: 'feature', slugs: ['team-based', 'shooter'] },
+'5v5': { points: 10, type: 'feature', slugs: ['competitive', 'team-based'] },
+'ranked': { points: 8, type: 'feature', slugs: ['competitive', 'esports'] },
+'elo': { points: 6, type: 'feature', slugs: ['competitive'] },
+
+// ========================================
+// ANTI-STORY KEYWORDS FÜR PVP
+// ========================================
+'kein-story': { points: 8, type: 'feature', slugs: ['multiplayer-only'] },
+'nur-multiplayer': { points: 8, type: 'feature', slugs: ['multiplayer-only'] },
+'online-only': { points: 6, type: 'feature', slugs: ['multiplayer-only'] },
+// Fügen Sie diese zu Ihren keywordScores hinzu:
+
+// ========================================
+// AUFBAU/BUILDING KEYWORDS
+// ========================================
+'aufbau': { points: 12, type: 'feature', slugs: ['building', 'city-building', 'management'] },
+'aufbaustrategie': { points: 15, type: 'genre', slugs: ['city-building', 'strategy'], isPrimary: true },
+'städtebau': { points: 12, type: 'feature', slugs: ['city-building'] },
+'bauwesen': { points: 10, type: 'feature', slugs: ['building'] },
+'konstruktion': { points: 8, type: 'feature', slugs: ['building'] },
+'errichten': { points: 6, type: 'feature', slugs: ['building'] },
+
+// ========================================
+//  ENTSPANNUNG KEYWORDS  
+// ========================================
+'entspannt': { points: 10, type: 'mood', slugs: ['relaxing', 'casual', 'family'] },
+'gelassen': { points: 8, type: 'mood', slugs: ['relaxing'] },
+'stressfrei': { points: 8, type: 'mood', slugs: ['relaxing', 'casual'] },
+'beruhigend': { points: 6, type: 'mood', slugs: ['relaxing'] },
+
+// ========================================
+//  ZEIT/UMFANG KEYWORDS
+// ========================================
+'ausgiebig': { points: 6, type: 'time', slugs: ['role-playing-games-rpg', 'strategy', 'simulation'] },
+'ausführlich': { points: 6, type: 'time', slugs: ['strategy', 'simulation'] },
+'tiefgehend': { points: 6, type: 'time', slugs: ['simulation', 'strategy'] },
+'komplex': { points: 8, type: 'feature', slugs: ['strategy', 'simulation'] },
+'detailliert': { points: 6, type: 'feature', slugs: ['simulation'] },
+'umfangreich': { points: 4, type: 'time', slugs: ['role-playing-games-rpg', 'strategy'] },
 };
 const translations = {
   de: {
@@ -3810,16 +3864,12 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
         setLoading(false);
     }
 }
-
-function extractKeywordsFromChat(chatHistory, scoreDefinition) {
+async function extractKeywordsFromChat(chatHistory, scoreDefinition) {
     const conversationText = " " + chatHistory.map(entry => entry.parts[0].text).join(' ').toLowerCase() + " ";
     const foundKeywords = [];
     
-    // ✅ VERBESSERTE Keyword-Erkennung
     for (const keyword in scoreDefinition) {
-        // Behandle zusammengesetzte Begriffe besser
         if (keyword.includes('-')) {
-            // Für "real-time-strategy" prüfe auch "real time strategy"
             const alternativeKeyword = keyword.replace(/-/g, ' ');
             const regexWithDashes = new RegExp(`\\b${keyword.replace(/-/g, '\\-')}\\b`, 'i');
             const regexWithSpaces = new RegExp(`\\b${alternativeKeyword}\\b`, 'i');
@@ -3828,15 +3878,142 @@ function extractKeywordsFromChat(chatHistory, scoreDefinition) {
                 foundKeywords.push(keyword);
             }
         } else {
-            // Normale Wörter
-            const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-            if (regex.test(conversationText)) {
-                foundKeywords.push(keyword);
+            // Spezielle Behandlung für problematische Keywords
+            if (keyword === 'story') {
+                const storyRegex = /\b(story|geschichte|handlung|kampagne|erzählung)\b/i;
+                if (storyRegex.test(conversationText)) {
+                    foundKeywords.push(keyword);
+                }
+            } else if (keyword === 'arcade') {
+                const arcadeRegex = /\b(arcade|arkade|spaß|casual)\b/i;
+                if (arcadeRegex.test(conversationText) && !conversationText.includes('real')) {
+                    foundKeywords.push(keyword);
+                }
+            } else {
+                const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+                if (regex.test(conversationText)) {
+                    foundKeywords.push(keyword);
+                }
             }
         }
     }
     
-    console.log("🔍 Gefundene Keywords:", foundKeywords);
+    // ✅ NEUES KI-FALLBACK - nur wenn zu wenig Keywords gefunden
+    if (foundKeywords.length < 2) {
+        console.log("🤖 Zu wenig Keywords - starte KI-Fallback");
+        try {
+            const aiKeywords = await extractKeywordsWithAI(conversationText);
+            foundKeywords.push(...aiKeywords);
+        } catch (error) {
+            console.log("🔄 KI-Fallback fehlgeschlagen, verwende Quick-Mapping");
+            // Ultra-einfaches Fallback
+            const quickKeywords = getQuickMappedKeywords(conversationText);
+            foundKeywords.push(...quickKeywords);
+        }
+    }
+    
+    const uniqueKeywords = [...new Set(foundKeywords)];
+    console.log("🔍 Gefundene Keywords:", uniqueKeywords);
+    return uniqueKeywords;
+}
+// ✅ NEUE FUNKTION - einfach irgendwo in Ihren Code einfügen:
+async function extractKeywordsWithAI(conversationText) {
+    const prompt = `Analysiere diese Gaming-Anfrage und extrahiere 3-5 relevante Keywords:
+"${conversationText}"
+
+Erkenne Begriffe für:
+- Genres: shooter, rpg, strategy, simulation, racing, puzzle, etc.
+- Stimmung: entspannt, kompetitiv, spannend, ruhig, etc.  
+- Stil: realistisch, arcade, indie, aaa, etc.
+- Features: multiplayer, story, building, pvp, etc.
+
+Antworte NUR mit einem JSON-Array: ["keyword1", "keyword2", "keyword3"]`;
+
+    const systemPrompt = "Du bist ein Gaming-Keyword-Extractor. Gib nur ein sauberes JSON-Array zurück, keine Erklärungen.";
+    
+    const response = await callGeminiAPI(prompt, systemPrompt, false);
+    const aiKeywords = JSON.parse(response.replace(/```json|```/g, '').trim());
+    
+    // Mappe AI-Keywords auf Ihre bestehenden keywordScores
+    const mappedKeywords = [];
+    aiKeywords.forEach(kw => {
+        const keyword = kw.toLowerCase();
+        
+        // Direkte Treffer
+        if (keywordScores[keyword]) {
+            mappedKeywords.push(keyword);
+            return;
+        }
+        
+        // Intelligente Mappings
+        const mappings = {
+            'building': 'aufbau',
+            'construction': 'aufbau', 
+            'city': 'städtebau',
+            'relaxed': 'entspannt',
+            'calm': 'ruhig',
+            'peaceful': 'friedlich',
+            'competitive': 'kompetitiv',
+            'realistic': 'realistisch',
+            'extensive': 'ausgiebig',
+            'complex': 'komplex',
+            'detailed': 'detailliert',
+            'tactical': 'taktisch',
+            'story-driven': 'story',
+            'narrative': 'story',
+            'first-person-shooter': 'fps',
+            'third-person-shooter': 'shooter',
+            'role-playing': 'rpg',
+            'real-time-strategy': 'rts',
+            'turn-based': 'rundenbasiert'
+        };
+        
+        if (mappings[keyword]) {
+            mappedKeywords.push(mappings[keyword]);
+        }
+    });
+    
+    console.log("🤖 KI-gemappte Keywords:", mappedKeywords);
+    return mappedKeywords;
+}
+// ✅ NEUE FUNKTION - Backup wenn alles andere fehlschlägt:
+function getQuickMappedKeywords(text) {
+    const quickMaps = [
+        // Aufbau/Building
+        { patterns: ['aufbau', 'bauen', 'building', 'stadt', 'city'], keywords: ['aufbau', 'simulation'] },
+        
+        // Entspannung
+        { patterns: ['entspann', 'relax', 'ruhig', 'gemütlich', 'chill'], keywords: ['entspannt', 'casual'] },
+        
+        // Wettkampf  
+        { patterns: ['kompetit', 'competitive', 'pvp', 'versus', 'gegen'], keywords: ['kompetitiv', 'multiplayer'] },
+        
+        // Realismus
+        { patterns: ['realisti', 'real', 'authenti', 'simulat'], keywords: ['realistisch', 'simulation'] },
+        
+        // Zeit/Umfang
+        { patterns: ['ausgiebig', 'lang', 'umfang', 'tief', 'detail', 'komplex'], keywords: ['lang', 'komplex'] },
+        { patterns: ['kurz', 'schnell', 'session'], keywords: ['kurz', 'casual'] },
+        
+        // Genres
+        { patterns: ['shoot', 'ballern', 'schieß'], keywords: ['shooter'] },
+        { patterns: ['rpg', 'rollenspiel', 'charakter'], keywords: ['rpg'] },
+        { patterns: ['strateg', 'taktik', 'planen'], keywords: ['strategie'] },
+        { patterns: ['renn', 'racing', 'auto', 'fahren'], keywords: ['racing'] },
+        { patterns: ['story', 'geschichte', 'handlung', 'kampagne'], keywords: ['story'] },
+        { patterns: ['horror', 'grusel', 'angst'], keywords: ['horror'] },
+        { patterns: ['sport', 'fußball', 'tennis'], keywords: ['sport'] }
+    ];
+    
+    const foundKeywords = [];
+    
+    quickMaps.forEach(map => {
+        if (map.patterns.some(pattern => text.includes(pattern))) {
+            foundKeywords.push(...map.keywords);
+        }
+    });
+    
+    console.log("🔄 Quick-gemappte Keywords:", foundKeywords);
     return foundKeywords;
 }
 async function runIGDBQuery(query) {
@@ -3864,13 +4041,56 @@ async function findBestGameMatch() {
         console.log("🎯 Extrahierte Keywords:", keywords);
         
         if (keywords.length === 0) {
-            renderErrorState("Ich konnte deine Wünsche nicht klar verstehen. Bitte sei etwas spezifischer über Genre oder Stimmung.");
-            return;
-        }
+    console.log("🚨 Keine Keywords gefunden - versuche Fallback-Erkennung");
+    
+    // Fallback: Analysiere den Gesprächstext nach bekannten Konzepten
+    const conversationText = chatHistory.map(entry => entry.parts[0].text).join(' ').toLowerCase();
+    const fallbackKeywords = [];
+    
+    // Genre-Fallbacks
+    if (/\b(aufbau|building|bauen|stadt|city)\b/i.test(conversationText)) {
+        fallbackKeywords.push('building', 'simulation');
+    }
+    if (/\b(entspann|relax|ruhig|gemütlich|chill)\b/i.test(conversationText)) {
+        fallbackKeywords.push('entspannend', 'casual');
+    }
+    if (/\b(realisti|authenti|simulat)\b/i.test(conversationText)) {
+        fallbackKeywords.push('realistisch', 'simulation');
+    }
+    if (/\b(kompetiti|pvp|versus|gegen)\b/i.test(conversationText)) {
+        fallbackKeywords.push('kompetitiv', 'multiplayer');
+    }
+    if (/\b(story|geschichte|kampagne|handlung)\b/i.test(conversationText)) {
+        fallbackKeywords.push('story', 'adventure');
+    }
+    if (/\b(strateg|taktik|planen)\b/i.test(conversationText)) {
+        fallbackKeywords.push('strategie', 'strategy');
+    }
+    if (/\b(action|schnell|rasant)\b/i.test(conversationText)) {
+        fallbackKeywords.push('action', 'schnell');
+    }
+    
+    // Zeit-Fallbacks
+    if (/\b(ausgiebig|lang|umfang|tief|detail|komplex)\b/i.test(conversationText)) {
+        fallbackKeywords.push('lang', 'komplex');
+    }
+    if (/\b(kurz|schnell|session|pause)\b/i.test(conversationText)) {
+        fallbackKeywords.push('kurz', 'casual');
+    }
+    
+    if (fallbackKeywords.length > 0) {
+        console.log("🔄 Fallback-Keywords gefunden:", fallbackKeywords);
+        // Verwende die Fallback-Keywords für die weitere Verarbeitung
+        keywords = fallbackKeywords;
+    } else {
+        renderErrorState("Ich konnte deine Wünsche nicht klar verstehen. Versuche Begriffe wie 'entspannend', 'kompetitiv', 'Aufbau', 'Shooter' oder 'RPG'.");
+        return;
+    }
+}
 
-        // ✅ OPTIMIERTE IGDB-Query für mehr Diversität
+        // ✅ ERWEITERTE IGDB-Query mit Multiplayer-Informationen
         const query = `
-            fields name, summary, cover.url, genres.slug, themes.slug, total_rating, total_rating_count, first_release_date;
+            fields name, summary, cover.url, genres.slug, themes.slug, game_modes.slug, total_rating, total_rating_count, first_release_date;
             sort total_rating desc;
             limit 500;
             where category = 0 & total_rating_count > 15 & version_parent = null & cover != null & first_release_date > 946684800;
@@ -3891,21 +4111,29 @@ async function findBestGameMatch() {
             seenGameIds = new Set(seenGamesSnapshot.docs.map(doc => doc.data().rawgId));
         }
         
-        // ✅ VERBESSERTE Scoring-Logik mit intelligenten Boni und Mali
+        // ✅ ERWEITERTE Scoring-Logik mit PVP-Shooter Spezialbehandlung
         const primaryGenreKeyword = keywords.find(kw => keywordScores[kw]?.isPrimary);
+        const isPvpShooterRequest = keywords.includes('pvp') && keywords.includes('shooter');
+        const isCompetitiveRequest = keywords.includes('kompetitiv') || keywords.includes('competitive');
+        
         console.log("🎮 Primäres Genre:", primaryGenreKeyword);
+        console.log("🔫 PVP-Shooter Anfrage:", isPvpShooterRequest);
+        console.log("🏆 Kompetitive Anfrage:", isCompetitiveRequest);
 
         const scoredGames = candidateGames
             .map(game => {
                 const gameGenres = game.genres ? game.genres.map(g => g.slug) : [];
                 const gameThemes = game.themes ? game.themes.map(t => t.slug) : [];
-                const gameAttributes = new Set([...gameGenres, ...gameThemes]);
+                const gameModes = game.game_modes ? game.game_modes.map(m => m.slug) : [];
+                const gameAttributes = new Set([...gameGenres, ...gameThemes, ...gameModes]);
                 
                 let score = 0;
                 let matchedKeywords = [];
                 let hasGenreMatch = false;
                 let hasStyleMatch = false;
+                let hasMultiplayerMode = gameModes.includes('multiplayer') || gameModes.includes('cooperative');
 
+                // ✅ NORMALE KEYWORD-VERARBEITUNG
                 keywords.forEach(keyword => {
                     const scoreInfo = keywordScores[keyword];
                     if (!scoreInfo) return;
@@ -3915,8 +4143,6 @@ async function findBestGameMatch() {
                     
                     if (hasMatch) {
                         let points = scoreInfo.points;
-                        
-                        // ✅ NEUE BONUS-LOGIK
                         
                         // 1. Genre-Match Bonus (50% mehr Punkte für direkte Genre-Treffer)
                         if (scoreInfo.type === 'genre' && gameGenres.some(g => targetSlugs.includes(g))) {
@@ -3946,12 +4172,16 @@ async function findBestGameMatch() {
                         
                         // 5. Racing-spezifische Boni
                         if (keyword === 'racing' || keyword === 'rennspiel') {
-                            // Arcade-Racing vs. Sim-Racing unterscheiden
                             if (keywords.includes('real') && gameGenres.includes('simulation')) {
                                 points *= 1.8; // Bonus für Racing-Sims
                             } else if (keywords.includes('arcade') && gameThemes.includes('arcade')) {
                                 points *= 1.5; // Bonus für Arcade-Racing
                             }
+                        }
+                        
+                        // 6. PVP/Multiplayer Bonus
+                        if (keyword === 'pvp' && hasMultiplayerMode) {
+                            points *= 1.5; // Bonus für echte Multiplayer-Spiele
                         }
                         
                         score += Math.round(points);
@@ -3961,10 +4191,67 @@ async function findBestGameMatch() {
                     }
                 });
 
-                // ✅ MALUS-SYSTEM für schlechte Matches
+                // ✅ SPEZIELLE PVP-SHOOTER LOGIK
+                if (isPvpShooterRequest || isCompetitiveRequest) {
+                    const gameName = game.name.toLowerCase();
+                    
+                    // Liste bekannter kompetitiver Shooter
+                    const competitiveShooters = [
+                        'counter-strike', 'valorant', 'rainbow six', 'overwatch', 
+                        'apex legends', 'call of duty', 'battlefield', 'team fortress',
+                        'siege', 'cs:go', 'csgo', 'paladins', 'quake', 'unreal tournament',
+                        'insurgency', 'squad', 'escape from tarkov', 'hunt showdown'
+                    ];
+                    
+                    const isCompetitiveShooter = competitiveShooters.some(cs => 
+                        gameName.includes(cs) || gameName.replace(/[:\-\s]/g, '').includes(cs.replace(/[:\-\s]/g, ''))
+                    );
+                    
+                    if (isCompetitiveShooter) {
+                        score += 30; // Großer Bonus für bekannte PVP-Shooter
+                        matchedKeywords.push('competitive-shooter-bonus (+30)');
+                    }
+                    
+                    // Extra Bonus für Multiplayer-Modi bei PVP-Anfragen
+                    if (hasMultiplayerMode && gameGenres.includes('shooter')) {
+                        score += 15;
+                        matchedKeywords.push('pvp-multiplayer-bonus (+15)');
+                    }
+                    
+                    // Story-fokussierte Spiele bei PVP-Anfragen abstrafen
+                    const storyFocusedNames = [
+                        'last of us', 'red dead', 'uncharted', 'bioshock', 
+                        'mass effect', 'portal', 'half-life', 'tomb raider',
+                        'metro', 'dishonored', 'deus ex', 'witcher'
+                    ];
+                    
+                    const isStoryFocused = storyFocusedNames.some(sf => gameName.includes(sf));
+                    
+                    if (isStoryFocused) {
+                        score -= 25; // Großer Malus für Story-Spiele bei PVP-Anfragen
+                        matchedKeywords.push('story-focused-malus (-25)');
+                    }
+                }
+
+                // ✅ REALISTISCHE SHOOTER SPEZIALBEHANDLUNG
+                if (keywords.includes('real') && keywords.includes('shooter') && !keywords.includes('story')) {
+                    const gameName = game.name.toLowerCase();
+                    const realisticShooters = [
+                        'counter-strike', 'rainbow six', 'squad', 'insurgency', 
+                        'escape from tarkov', 'hunt showdown', 'ground branch',
+                        'ready or not', 'swat', 'arma'
+                    ];
+                    
+                    if (realisticShooters.some(rs => gameName.includes(rs.replace('-', ' ')))) {
+                        score += 20;
+                        matchedKeywords.push('realistic-shooter-bonus (+20)');
+                    }
+                }
+
+                // ✅ ALLGEMEINE MALUS-SYSTEME
                 
                 // Realismus vs. Arcade Konflikt (-15 Punkte)
-                if (keywords.includes('real') && gameGenres.includes('arcade')) {
+                if (keywords.includes('real') && gameGenres.includes('arcade') && !isPvpShooterRequest) {
                     score -= 15;
                     matchedKeywords.push('arcade-conflict (-15)');
                 }
@@ -3984,14 +4271,20 @@ async function findBestGameMatch() {
                     matchedKeywords.push('horror-relaxing-conflict (-12)');
                 }
                 
-                if (keywords.includes('ruhig') && gameGenres.includes('action')) {
+                if (keywords.includes('ruhig') && gameGenres.includes('action') && !isPvpShooterRequest) {
                     score -= 8;
                     matchedKeywords.push('action-calm-conflict (-8)');
                 }
                 
+                // Singleplayer bei PVP-Anfragen abstrafen
+                if ((isPvpShooterRequest || isCompetitiveRequest) && !hasMultiplayerMode) {
+                    score -= 15;
+                    matchedKeywords.push('no-multiplayer-malus (-15)');
+                }
+                
                 // Mindest-Score für thematische Treffer
                 if (score > 0 && !hasGenreMatch && !hasStyleMatch) {
-                    score += 5; // Basis-Punkte für thematische Matches
+                    score += 5;
                 }
 
                 return { 
@@ -4000,27 +4293,35 @@ async function findBestGameMatch() {
                     matchedKeywords,
                     originalData: game,
                     hasGenreMatch,
-                    hasStyleMatch
+                    hasStyleMatch,
+                    hasMultiplayerMode
                 };
             })
             .filter(game => game.score > 0 && !seenGameIds.has(game.id))
             .sort((a, b) => {
-                // ✅ MEHRSTUFIGE SORTIERUNG
+                // ✅ ERWEITERTE SORTIERUNG für PVP-Shooter
                 
                 // 1. Primär nach Score sortieren
                 if (b.score !== a.score) return b.score - a.score;
                 
-                // 2. Bei gleichem Score: Genre-Matches bevorzugen
+                // 2. Bei PVP-Anfragen: Multiplayer-Spiele bevorzugen
+                if (isPvpShooterRequest || isCompetitiveRequest) {
+                    if (b.hasMultiplayerMode !== a.hasMultiplayerMode) {
+                        return b.hasMultiplayerMode ? 1 : -1;
+                    }
+                }
+                
+                // 3. Genre-Matches bevorzugen
                 if (b.hasGenreMatch !== a.hasGenreMatch) {
                     return b.hasGenreMatch ? 1 : -1;
                 }
                 
-                // 3. Style-Matches als nächstes
+                // 4. Style-Matches als nächstes
                 if (b.hasStyleMatch !== a.hasStyleMatch) {
                     return b.hasStyleMatch ? 1 : -1;
                 }
                 
-                // 4. Zuletzt: Popularität (aber nicht zu dominant)
+                // 5. Zuletzt: Popularität (aber nicht zu dominant)
                 return (b.originalData.total_rating_count || 0) - (a.originalData.total_rating_count || 0);
             });
 
@@ -4029,8 +4330,8 @@ async function findBestGameMatch() {
             Name: g.name, 
             Score: g.score, 
             GenreMatch: g.hasGenreMatch,
-            StyleMatch: g.hasStyleMatch,
-            Matched: g.matchedKeywords.slice(0, 3).join(', ') // Nur erste 3 zeigen
+            Multiplayer: g.hasMultiplayerMode,
+            Matched: g.matchedKeywords.slice(0, 2).join(', ')
         })));
 
         if (scoredGames.length === 0) {
@@ -4038,16 +4339,21 @@ async function findBestGameMatch() {
             return;
         }
 
-        // ✅ VERBESSERTE Top-Tier Auswahl
-        // Nimm die besten Matches, aber mit etwas Varianz
-        const topTierSize = Math.min(5, scoredGames.length);
+        // ✅ INTELLIGENTE Top-Tier Auswahl
+        const topTierSize = Math.min(8, scoredGames.length);
         const topTier = scoredGames.slice(0, topTierSize);
         
-        // Bevorzuge Genre-Matches bei der finalen Auswahl
-        const genreMatches = topTier.filter(g => g.hasGenreMatch);
-        const finalSelection = genreMatches.length > 0 ? genreMatches : topTier;
-        
-        const chosenGame = finalSelection[Math.floor(Math.random() * finalSelection.length)];
+        // Bei PVP-Anfragen: Multiplayer-Spiele stark bevorzugen
+        if (isPvpShooterRequest || isCompetitiveRequest) {
+            const multiplayerMatches = topTier.filter(g => g.hasMultiplayerMode);
+            const finalSelection = multiplayerMatches.length > 0 ? multiplayerMatches.slice(0, 5) : topTier.slice(0, 3);
+            var chosenGame = finalSelection[Math.floor(Math.random() * finalSelection.length)];
+        } else {
+            // Normale Auswahl für andere Genres
+            const genreMatches = topTier.filter(g => g.hasGenreMatch);
+            const finalSelection = genreMatches.length > 0 ? genreMatches.slice(0, 5) : topTier.slice(0, 5);
+            var chosenGame = finalSelection[Math.floor(Math.random() * finalSelection.length)];
+        }
         
         console.log("🎯 Gewähltes Spiel:", chosenGame.name, "Score:", chosenGame.score, "Matches:", chosenGame.matchedKeywords);
 
