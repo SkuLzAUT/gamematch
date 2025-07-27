@@ -1505,102 +1505,304 @@ const partners = [
         }
     ];
 const keywordScores = {
-    // Hauptgenres (höchste Priorität)
+    // ========================================
+    // HAUPTGENRES (höchste Priorität)
+    // ========================================
     'shooter': { points: 15, type: 'genre', slugs: ['shooter', 'action'], isPrimary: true },
     'ballerspiel': { points: 15, type: 'genre', slugs: ['shooter', 'action'], isPrimary: true },
     'ego-shooter': { points: 15, type: 'genre', slugs: ['shooter', 'action'], isPrimary: true },
     'fps': { points: 15, type: 'genre', slugs: ['shooter', 'action'], isPrimary: true },
+    'third-person-shooter': { points: 15, type: 'genre', slugs: ['shooter', 'action'], isPrimary: true },
+    'tps': { points: 15, type: 'genre', slugs: ['shooter', 'action'], isPrimary: true },
     
     'rpg': { points: 15, type: 'genre', slugs: ['role-playing-games-rpg', 'rpg'], isPrimary: true },
     'rollenspiel': { points: 15, type: 'genre', slugs: ['role-playing-games-rpg', 'rpg'], isPrimary: true },
+    'jrpg': { points: 15, type: 'genre', slugs: ['role-playing-games-rpg'], isPrimary: true },
+    'western-rpg': { points: 15, type: 'genre', slugs: ['role-playing-games-rpg'], isPrimary: true },
+    'crpg': { points: 15, type: 'genre', slugs: ['role-playing-games-rpg'], isPrimary: true },
     
-    'strategie': { points: 12, type: 'genre', slugs: ['strategy', 'real-time-strategy-rts', 'turn-based-strategy-tbs'], isPrimary: true },
-    'strategiespiel': { points: 12, type: 'genre', slugs: ['strategy', 'real-time-strategy-rts'], isPrimary: true },
+    'strategie': { points: 15, type: 'genre', slugs: ['strategy', 'real-time-strategy-rts', 'turn-based-strategy-tbs'], isPrimary: true },
+    'strategiespiel': { points: 15, type: 'genre', slugs: ['strategy', 'real-time-strategy-rts'], isPrimary: true },
+    'rts': { points: 15, type: 'genre', slugs: ['real-time-strategy-rts'], isPrimary: true },
+    'turn-based': { points: 15, type: 'genre', slugs: ['turn-based-strategy-tbs'], isPrimary: true },
+    'rundenbasiert': { points: 15, type: 'genre', slugs: ['turn-based-strategy-tbs'], isPrimary: true },
+    '4x': { points: 12, type: 'genre', slugs: ['strategy'], isPrimary: true },
+    'grand-strategy': { points: 12, type: 'genre', slugs: ['strategy'], isPrimary: true },
     
-    'simulation': { points: 12, type: 'genre', slugs: ['simulation'], isPrimary: true },
-    'rennspiel': { points: 12, type: 'genre', slugs: ['racing', 'sports'], isPrimary: true },
-    'racing': { points: 12, type: 'genre', slugs: ['racing', 'sports'], isPrimary: true },
+    'simulation': { points: 15, type: 'genre', slugs: ['simulation'], isPrimary: true },
+    'simulator': { points: 15, type: 'genre', slugs: ['simulation'], isPrimary: true },
+    'life-sim': { points: 12, type: 'genre', slugs: ['simulation', 'life-simulation'], isPrimary: true },
+    'lebenssimulation': { points: 12, type: 'genre', slugs: ['simulation', 'life-simulation'], isPrimary: true },
+    'flugsimulator': { points: 12, type: 'genre', slugs: ['simulation'], isPrimary: true },
+    'fahrsimulator': { points: 12, type: 'genre', slugs: ['simulation', 'racing'], isPrimary: true },
     
-    'plattformer': { points: 10, type: 'genre', slugs: ['platformer', 'arcade'], isPrimary: true },
-    'jump-and-run': { points: 10, type: 'genre', slugs: ['platformer', 'arcade'], isPrimary: true },
+    'rennspiel': { points: 15, type: 'genre', slugs: ['racing', 'sports'], isPrimary: true },
+    'racing': { points: 15, type: 'genre', slugs: ['racing', 'sports'], isPrimary: true },
+    'rennen': { points: 15, type: 'genre', slugs: ['racing'], isPrimary: true },
+    'formel-1': { points: 12, type: 'genre', slugs: ['racing', 'sports'], isPrimary: true },
+    'rally': { points: 12, type: 'genre', slugs: ['racing'], isPrimary: true },
+    'drifting': { points: 10, type: 'genre', slugs: ['racing'], isPrimary: true },
     
-    'puzzle': { points: 10, type: 'genre', slugs: ['puzzle'], isPrimary: true },
-    'rätsel': { points: 10, type: 'genre', slugs: ['puzzle'], isPrimary: true },
-    'rätselspiel': { points: 10, type: 'genre', slugs: ['puzzle'], isPrimary: true },
+    'plattformer': { points: 12, type: 'genre', slugs: ['platformer', 'arcade'], isPrimary: true },
+    'jump-and-run': { points: 12, type: 'genre', slugs: ['platformer', 'arcade'], isPrimary: true },
+    'platformer': { points: 12, type: 'genre', slugs: ['platformer'], isPrimary: true },
+    'metroidvania': { points: 12, type: 'genre', slugs: ['platformer', 'adventure'], isPrimary: true },
     
-    'kampfspiel': { points: 10, type: 'genre', slugs: ['fighting'], isPrimary: true },
-    'fighting': { points: 10, type: 'genre', slugs: ['fighting'], isPrimary: true },
+    'puzzle': { points: 12, type: 'genre', slugs: ['puzzle'], isPrimary: true },
+    'rätsel': { points: 12, type: 'genre', slugs: ['puzzle'], isPrimary: true },
+    'rätselspiel': { points: 12, type: 'genre', slugs: ['puzzle'], isPrimary: true },
+    'denkspiel': { points: 12, type: 'genre', slugs: ['puzzle'], isPrimary: true },
+    'logik': { points: 10, type: 'genre', slugs: ['puzzle'], isPrimary: true },
     
-    // Sekundärgenres & Features
-    'action': { points: 8, type: 'genre', slugs: ['action'] },
-    'adventure': { points: 8, type: 'genre', slugs: ['adventure'] },
-    'abenteuer': { points: 8, type: 'genre', slugs: ['adventure'] },
-    'indie': { points: 6, type: 'genre', slugs: ['indie'] },
+    'kampfspiel': { points: 12, type: 'genre', slugs: ['fighting'], isPrimary: true },
+    'fighting': { points: 12, type: 'genre', slugs: ['fighting'], isPrimary: true },
+    'prügelspiel': { points: 12, type: 'genre', slugs: ['fighting'], isPrimary: true },
+    'beat-em-up': { points: 10, type: 'genre', slugs: ['fighting', 'action'], isPrimary: true },
     
-    // Spielmechaniken & Features
-    'open-world': { points: 8, type: 'feature', slugs: ['open-world'] },
-    'offene-welt': { points: 8, type: 'feature', slugs: ['open-world'] },
-    'survival': { points: 8, type: 'feature', slugs: ['survival'] },
-    'überleben': { points: 8, type: 'feature', slugs: ['survival'] },
-    'mmo': { points: 8, type: 'feature', slugs: ['massively-multiplayer'] },
-    'multiplayer': { points: 6, type: 'feature', slugs: ['multiplayer'] },
+    'moba': { points: 12, type: 'genre', slugs: ['strategy', 'multiplayer'], isPrimary: true },
+    'battle-royale': { points: 12, type: 'genre', slugs: ['shooter', 'action'], isPrimary: true },
+    'auto-battler': { points: 10, type: 'genre', slugs: ['strategy'], isPrimary: true },
+    'tower-defense': { points: 10, type: 'genre', slugs: ['strategy', 'tower-defense'], isPrimary: true },
+    
+    // ========================================
+    // SEKUNDÄRGENRES & FEATURES
+    // ========================================
+    'action': { points: 10, type: 'genre', slugs: ['action'] },
+    'adventure': { points: 10, type: 'genre', slugs: ['adventure'] },
+    'abenteuer': { points: 10, type: 'genre', slugs: ['adventure'] },
+    'indie': { points: 8, type: 'genre', slugs: ['indie'] },
+    'roguelike': { points: 8, type: 'feature', slugs: ['roguelike'] },
+    'roguelite': { points: 8, type: 'feature', slugs: ['roguelike'] },
+    'soulslike': { points: 8, type: 'feature', slugs: ['action', 'difficult'] },
+    
+    // ========================================
+    // SPIELMECHANIKEN & FEATURES
+    // ========================================
+    'open-world': { points: 10, type: 'feature', slugs: ['open-world'] },
+    'offene-welt': { points: 10, type: 'feature', slugs: ['open-world'] },
+    'sandbox': { points: 8, type: 'feature', slugs: ['sandbox'] },
+    
+    'survival': { points: 10, type: 'feature', slugs: ['survival'] },
+    'überleben': { points: 10, type: 'feature', slugs: ['survival'] },
+    'crafting': { points: 8, type: 'feature', slugs: ['crafting'] },
+    'bauen': { points: 8, type: 'feature', slugs: ['building'] },
+    'building': { points: 8, type: 'feature', slugs: ['building'] },
+    
+    'stealth': { points: 8, type: 'feature', slugs: ['stealth'] },
+    'schleichen': { points: 8, type: 'feature', slugs: ['stealth'] },
+    'verstecken': { points: 6, type: 'feature', slugs: ['stealth'] },
+    
+    'mmo': { points: 10, type: 'feature', slugs: ['massively-multiplayer'] },
+    'mmorpg': { points: 12, type: 'feature', slugs: ['massively-multiplayer', 'role-playing-games-rpg'] },
+    'multiplayer': { points: 8, type: 'feature', slugs: ['multiplayer'] },
     'online': { points: 6, type: 'feature', slugs: ['multiplayer'] },
-    'singleplayer': { points: 4, type: 'feature', slugs: ['single-player'] },
-    'alleine': { points: 4, type: 'feature', slugs: ['single-player'] },
+    'co-op': { points: 8, type: 'feature', slugs: ['co-op'] },
+    'koop': { points: 8, type: 'feature', slugs: ['co-op'] },
+    'zusammen': { points: 6, type: 'feature', slugs: ['co-op', 'multiplayer'] },
+    'split-screen': { points: 6, type: 'feature', slugs: ['local-multiplayer'] },
+    'lokal': { points: 6, type: 'feature', slugs: ['local-multiplayer'] },
     
-    // Story & Atmosphäre
-    'story': { points: 7, type: 'feature', slugs: ['adventure', 'role-playing-games-rpg'] },
-    'geschichte': { points: 7, type: 'feature', slugs: ['adventure', 'role-playing-games-rpg'] },
-    'erzählung': { points: 7, type: 'feature', slugs: ['adventure', 'role-playing-games-rpg'] },
+    'singleplayer': { points: 6, type: 'feature', slugs: ['single-player'] },
+    'alleine': { points: 6, type: 'feature', slugs: ['single-player'] },
+    'solo': { points: 6, type: 'feature', slugs: ['single-player'] },
     
-    // Settings & Themen
-    'fantasy': { points: 6, type: 'theme', slugs: ['fantasy', 'medieval'] },
-    'sci-fi': { points: 6, type: 'theme', slugs: ['science-fiction', 'futuristic'] },
-    'science-fiction': { points: 6, type: 'theme', slugs: ['science-fiction', 'futuristic'] },
-    'horror': { points: 6, type: 'theme', slugs: ['horror', 'survival-horror'] },
-    'düster': { points: 5, type: 'theme', slugs: ['horror', 'dark-fantasy', 'gothic'] },
-    'dunkel': { points: 5, type: 'theme', slugs: ['horror', 'dark-fantasy'] },
-    'realistisch': { points: 5, type: 'theme', slugs: ['military', 'modern', 'historical', 'tactical'] },
-    'mittelalter': { points: 5, type: 'theme', slugs: ['medieval', 'fantasy'] },
-    'modern': { points: 4, type: 'theme', slugs: ['modern', 'contemporary'] },
+    'pvp': { points: 8, type: 'feature', slugs: ['pvp'] },
+    'pve': { points: 6, type: 'feature', slugs: ['pve'] },
     
-    // Stimmungen & Gameplay-Stil
-    'entspannend': { points: 8, type: 'mood', slugs: ['relaxing', 'casual', 'family'] },
-    'entspannung': { points: 8, type: 'mood', slugs: ['relaxing', 'casual', 'simulation'] },
-    'chillen': { points: 7, type: 'mood', slugs: ['relaxing', 'casual'] },
-    'ruhig': { points: 7, type: 'mood', slugs: ['relaxing', 'puzzle'] },
-    'friedlich': { points: 6, type: 'mood', slugs: ['relaxing', 'simulation'] },
+    // ========================================
+    // STORY & ATMOSPHÄRE
+    // ========================================
+    'story': { points: 10, type: 'feature', slugs: ['story-rich', 'adventure', 'role-playing-games-rpg'] },
+    'geschichte': { points: 10, type: 'feature', slugs: ['story-rich', 'adventure'] },
+    'erzählung': { points: 8, type: 'feature', slugs: ['story-rich', 'adventure'] },
+    'handlung': { points: 8, type: 'feature', slugs: ['story-rich'] },
+    'narrative': { points: 8, type: 'feature', slugs: ['story-rich'] },
+    'plot': { points: 6, type: 'feature', slugs: ['story-rich'] },
     
-    'kompetitiv': { points: 8, type: 'mood', slugs: ['competitive', 'pvp', 'esports', 'fighting'] },
-    'competitive': { points: 8, type: 'mood', slugs: ['competitive', 'pvp', 'esports'] },
-    'wettbewerb': { points: 7, type: 'mood', slugs: ['competitive', 'sports', 'racing'] },
-    'herausfordernd': { points: 7, type: 'mood', slugs: ['difficult', 'hard', 'challenging'] },
-    'schwer': { points: 6, type: 'mood', slugs: ['difficult', 'hard'] },
-    'schwierig': { points: 6, type: 'mood', slugs: ['difficult', 'hard'] },
+    'charakterentwicklung': { points: 8, type: 'feature', slugs: ['character-customization', 'role-playing-games-rpg'] },
+    'leveling': { points: 6, type: 'feature', slugs: ['role-playing-games-rpg'] },
+    'progression': { points: 6, type: 'feature', slugs: ['role-playing-games-rpg'] },
     
-    'schnell': { points: 7, type: 'mood', slugs: ['action', 'racing', 'arcade'] },
-    'rasant': { points: 7, type: 'mood', slugs: ['action', 'racing', 'shooter'] },
-    'langsam': { points: 6, type: 'mood', slugs: ['strategy', 'puzzle', 'turn-based-strategy-tbs'] },
-    'bedacht': { points: 6, type: 'mood', slugs: ['strategy', 'puzzle'] },
+    // ========================================
+    // SETTINGS & THEMEN
+    // ========================================
+    'fantasy': { points: 8, type: 'theme', slugs: ['fantasy', 'medieval'] },
+    'mittelalter': { points: 8, type: 'theme', slugs: ['medieval', 'fantasy'] },
+    'magie': { points: 6, type: 'theme', slugs: ['fantasy'] },
+    'drachen': { points: 6, type: 'theme', slugs: ['fantasy'] },
+    'elfen': { points: 6, type: 'theme', slugs: ['fantasy'] },
     
-    // Zeit-bezogene Keywords
-    'kurz': { points: 5, type: 'time', slugs: ['arcade', 'puzzle', 'casual'] },
-    'schnelle-runde': { points: 5, type: 'time', slugs: ['arcade', 'puzzle', 'fighting'] },
-    'lang': { points: 4, type: 'time', slugs: ['role-playing-games-rpg', 'strategy', 'simulation'] },
-    'lange-session': { points: 4, type: 'time', slugs: ['role-playing-games-rpg', 'strategy'] },
+    'sci-fi': { points: 8, type: 'theme', slugs: ['science-fiction', 'futuristic'] },
+    'science-fiction': { points: 8, type: 'theme', slugs: ['science-fiction', 'futuristic'] },
+    'zukunft': { points: 6, type: 'theme', slugs: ['futuristic'] },
+    'weltraum': { points: 8, type: 'theme', slugs: ['space', 'science-fiction'] },
+    'aliens': { points: 6, type: 'theme', slugs: ['science-fiction'] },
+    'roboter': { points: 6, type: 'theme', slugs: ['science-fiction', 'robots'] },
+    'cyberpunk': { points: 8, type: 'theme', slugs: ['cyberpunk', 'futuristic'] },
     
-    // Gefühle & Emotionen  
-    'spaß': { points: 5, type: 'mood', slugs: ['casual', 'arcade', 'family'] },
-    'lustig': { points: 5, type: 'mood', slugs: ['casual', 'family', 'party'] },
-    'spannend': { points: 6, type: 'mood', slugs: ['action', 'adventure', 'thriller'] },
-    'aufregend': { points: 6, type: 'mood', slugs: ['action', 'racing', 'shooter'] },
-    'gruselig': { points: 6, type: 'mood', slugs: ['horror', 'survival-horror'] },
+    'horror': { points: 10, type: 'theme', slugs: ['horror', 'survival-horror'] },
+    'grusel': { points: 8, type: 'theme', slugs: ['horror'] },
+    'zombies': { points: 8, type: 'theme', slugs: ['zombies', 'horror'] },
+    'vampire': { points: 6, type: 'theme', slugs: ['horror', 'fantasy'] },
+    'geister': { points: 6, type: 'theme', slugs: ['horror'] },
     
-    // Niedrig gewichtete Modifikatoren
-    'casual': { points: 3, type: 'mood', slugs: ['casual', 'family'] },
-    'hardcore': { points: 3, type: 'mood', slugs: ['difficult', 'simulation'] },
-    'retro': { points: 2, type: 'style', slugs: ['retro', 'pixel-graphics'] },
-    'pixel': { points: 2, type: 'style', slugs: ['pixel-graphics', 'retro'] },
+    'düster': { points: 6, type: 'theme', slugs: ['horror', 'dark-fantasy', 'gothic'] },
+    'dunkel': { points: 6, type: 'theme', slugs: ['horror', 'dark-fantasy'] },
+    'gothic': { points: 6, type: 'theme', slugs: ['gothic', 'horror'] },
+    'noir': { points: 6, type: 'theme', slugs: ['noir', 'crime'] },
+    
+    'real': { points: 8, type: 'style', slugs: ['simulation', 'realistic'] },
+    'realistisch': { points: 8, type: 'style', slugs: ['simulation', 'realistic'] },
+    'authentisch': { points: 6, type: 'style', slugs: ['simulation', 'realistic'] },
+    'historisch': { points: 8, type: 'theme', slugs: ['historical'] },
+    'geschichte': { points: 6, type: 'theme', slugs: ['historical'] },
+    
+    'modern': { points: 6, type: 'theme', slugs: ['modern', 'contemporary'] },
+    'zeitgenössisch': { points: 6, type: 'theme', slugs: ['contemporary'] },
+    'urban': { points: 6, type: 'theme', slugs: ['urban'] },
+    'stadt': { points: 4, type: 'theme', slugs: ['urban'] },
+    
+    'militär': { points: 8, type: 'theme', slugs: ['military', 'war'] },
+    'krieg': { points: 8, type: 'theme', slugs: ['war', 'military'] },
+    'army': { points: 6, type: 'theme', slugs: ['military'] },
+    'taktisch': { points: 8, type: 'feature', slugs: ['tactical'] },
+    
+    'western': { points: 6, type: 'theme', slugs: ['western'] },
+    'wilder-westen': { points: 6, type: 'theme', slugs: ['western'] },
+    'cowboy': { points: 6, type: 'theme', slugs: ['western'] },
+    
+    'piraten': { points: 6, type: 'theme', slugs: ['pirates'] },
+    'meer': { points: 4, type: 'theme', slugs: ['naval'] },
+    'schiffe': { points: 4, type: 'theme', slugs: ['naval'] },
+    
+    'sport': { points: 10, type: 'genre', slugs: ['sports'] },
+    'fußball': { points: 10, type: 'genre', slugs: ['sports'] },
+    'basketball': { points: 8, type: 'genre', slugs: ['sports'] },
+    'tennis': { points: 8, type: 'genre', slugs: ['sports'] },
+    'golf': { points: 6, type: 'genre', slugs: ['sports'] },
+    'olympia': { points: 6, type: 'genre', slugs: ['sports'] },
+    
+    // ========================================
+    // STIMMUNGEN & GAMEPLAY-STIL
+    // ========================================
+    'entspannend': { points: 10, type: 'mood', slugs: ['relaxing', 'casual', 'family'] },
+    'entspannung': { points: 10, type: 'mood', slugs: ['relaxing', 'casual', 'simulation'] },
+    'chillen': { points: 9, type: 'mood', slugs: ['relaxing', 'casual'] },
+    'ruhig': { points: 8, type: 'mood', slugs: ['relaxing', 'puzzle'] },
+    'friedlich': { points: 8, type: 'mood', slugs: ['relaxing', 'simulation'] },
+    'zen': { points: 8, type: 'mood', slugs: ['relaxing'] },
+    'meditativ': { points: 8, type: 'mood', slugs: ['relaxing'] },
+    'gemütlich': { points: 6, type: 'mood', slugs: ['relaxing', 'casual'] },
+    
+    'kompetitiv': { points: 10, type: 'mood', slugs: ['competitive', 'pvp', 'esports', 'fighting'] },
+    'competitive': { points: 10, type: 'mood', slugs: ['competitive', 'pvp', 'esports'] },
+    'wettbewerb': { points: 8, type: 'mood', slugs: ['competitive', 'sports', 'racing'] },
+    'esports': { points: 8, type: 'mood', slugs: ['esports', 'competitive'] },
+    'ranking': { points: 6, type: 'mood', slugs: ['competitive'] },
+    'liga': { points: 6, type: 'mood', slugs: ['competitive', 'sports'] },
+    
+    'herausfordernd': { points: 8, type: 'mood', slugs: ['difficult', 'hard', 'challenging'] },
+    'schwer': { points: 8, type: 'mood', slugs: ['difficult', 'hard'] },
+    'schwierig': { points: 8, type: 'mood', slugs: ['difficult', 'hard'] },
+    'hardcore': { points: 8, type: 'mood', slugs: ['difficult', 'simulation'] },
+    'punishing': { points: 6, type: 'mood', slugs: ['difficult'] },
+    
+    'schnell': { points: 8, type: 'mood', slugs: ['action', 'racing', 'arcade'] },
+    'rasant': { points: 8, type: 'mood', slugs: ['action', 'racing', 'shooter'] },
+    'hektisch': { points: 6, type: 'mood', slugs: ['action', 'arcade'] },
+    'tempreich': { points: 6, type: 'mood', slugs: ['action'] },
+    
+    'langsam': { points: 8, type: 'mood', slugs: ['strategy', 'puzzle', 'turn-based-strategy-tbs'] },
+    'bedacht': { points: 8, type: 'mood', slugs: ['strategy', 'puzzle'] },
+    'durchdacht': { points: 6, type: 'mood', slugs: ['strategy'] },
+    'geduldig': { points: 6, type: 'mood', slugs: ['strategy', 'puzzle'] },
+    
+    'kreativ': { points: 8, type: 'mood', slugs: ['building', 'sandbox', 'simulation'] },
+    'bauen': { points: 8, type: 'mood', slugs: ['building', 'sandbox'] },
+    'erschaffen': { points: 6, type: 'mood', slugs: ['building'] },
+    'designen': { points: 6, type: 'mood', slugs: ['building'] },
+    
+    // ========================================
+    // ZEIT-BEZOGENE KEYWORDS
+    // ========================================
+    'kurz': { points: 6, type: 'time', slugs: ['arcade', 'puzzle', 'casual'] },
+    'schnelle-runde': { points: 6, type: 'time', slugs: ['arcade', 'puzzle', 'fighting'] },
+    'session': { points: 4, type: 'time', slugs: ['arcade', 'casual'] },
+    'pause': { points: 4, type: 'time', slugs: ['puzzle', 'casual'] },
+    
+    'lang': { points: 6, type: 'time', slugs: ['role-playing-games-rpg', 'strategy', 'simulation'] },
+    'lange-session': { points: 6, type: 'time', slugs: ['role-playing-games-rpg', 'strategy'] },
+    'episch': { points: 6, type: 'time', slugs: ['role-playing-games-rpg', 'adventure'] },
+    'endlos': { points: 4, type: 'time', slugs: ['sandbox', 'simulation'] },
+    
+    // ========================================
+    // GEFÜHLE & EMOTIONEN
+    // ========================================
+    'spaß': { points: 6, type: 'mood', slugs: ['casual', 'arcade', 'family'] },
+    'lustig': { points: 6, type: 'mood', slugs: ['casual', 'family', 'party'] },
+    'humor': { points: 6, type: 'mood', slugs: ['comedy'] },
+    'komisch': { points: 6, type: 'mood', slugs: ['comedy'] },
+    'witzig': { points: 6, type: 'mood', slugs: ['comedy'] },
+    
+    'spannend': { points: 8, type: 'mood', slugs: ['action', 'adventure', 'thriller'] },
+    'aufregend': { points: 8, type: 'mood', slugs: ['action', 'racing', 'shooter'] },
+    'adrenalin': { points: 8, type: 'mood', slugs: ['action', 'racing'] },
+    'intensiv': { points: 6, type: 'mood', slugs: ['action', 'horror'] },
+    
+    'gruselig': { points: 8, type: 'mood', slugs: ['horror', 'survival-horror'] },
+    'furcht': { points: 6, type: 'mood', slugs: ['horror'] },
+    'angst': { points: 6, type: 'mood', slugs: ['horror'] },
+    
+    'emotional': { points: 6, type: 'mood', slugs: ['story-rich', 'adventure'] },
+    'berührend': { points: 6, type: 'mood', slugs: ['story-rich'] },
+    'tränen': { points: 4, type: 'mood', slugs: ['story-rich'] },
+    
+    // ========================================
+    // STIL & PRODUKTIONSWERTE
+    // ========================================
+    'aaa': { points: 8, type: 'budget', slugs: ['action', 'adventure'] },
+    'triple-a': { points: 8, type: 'budget', slugs: ['action', 'adventure'] },
+    'blockbuster': { points: 8, type: 'budget', slugs: ['action', 'adventure'] },
+    'hochbudget': { points: 6, type: 'budget', slugs: ['action', 'adventure'] },
+    
+    'indie': { points: 8, type: 'budget', slugs: ['indie'] },
+    'independent': { points: 8, type: 'budget', slugs: ['indie'] },
+    'klein': { points: 6, type: 'budget', slugs: ['indie'] },
+    'nischig': { points: 6, type: 'budget', slugs: ['indie'] },
+    
+    'casual': { points: 6, type: 'mood', slugs: ['casual', 'family'] },
+    'gelegenheit': { points: 6, type: 'mood', slugs: ['casual'] },
+    'einfach': { points: 6, type: 'mood', slugs: ['casual'] },
+    
+    'retro': { points: 6, type: 'style', slugs: ['retro', 'pixel-graphics'] },
+    'pixel': { points: 6, type: 'style', slugs: ['pixel-graphics', 'retro'] },
+    'nostalgie': { points: 4, type: 'style', slugs: ['retro'] },
+    '8-bit': { points: 4, type: 'style', slugs: ['retro'] },
+    '16-bit': { points: 4, type: 'style', slugs: ['retro'] },
+    
+    'arcade': { points: 8, type: 'style', slugs: ['arcade', 'casual'] },
+    'arkade': { points: 8, type: 'style', slugs: ['arcade', 'casual'] },
+    'klassisch': { points: 4, type: 'style', slugs: ['arcade', 'retro'] },
+    
+    // ========================================
+    // SPEZIELLE MECHANIKEN
+    // ========================================
+    'permadeath': { points: 6, type: 'feature', slugs: ['roguelike'] },
+    'prozedural': { points: 6, type: 'feature', slugs: ['procedural-generation'] },
+    'zufällig': { points: 6, type: 'feature', slugs: ['procedural-generation'] },
+    'randomly-generated': { points: 6, type: 'feature', slugs: ['procedural-generation'] },
+    
+    'choices': { points: 6, type: 'feature', slugs: ['choices-matter'] },
+    'entscheidungen': { points: 6, type: 'feature', slugs: ['choices-matter'] },
+    'moral': { points: 4, type: 'feature', slugs: ['choices-matter'] },
+    
+    'exploration': { points: 6, type: 'feature', slugs: ['exploration'] },
+    'erkunden': { points: 6, type: 'feature', slugs: ['exploration'] },
+    'entdecken': { points: 6, type: 'feature', slugs: ['exploration'] },
+    
+    'management': { points: 8, type: 'feature', slugs: ['management'] },
+    'wirtschaft': { points: 8, type: 'feature', slugs: ['economy'] },
+    'ressourcen': { points: 6, type: 'feature', slugs: ['resource-management'] },
 };
 const translations = {
   de: {
@@ -2124,8 +2326,28 @@ i18next.on('languageChanged', () => {
         };
         
     
-const systemPromptConversation = `DU BIST EIN GAME-SCOUT. Dein Ziel ist es, in einem lockeren Gespräch die Wünsche des Nutzers für ein PC-Spiel zu verstehen. STELLE IMMER NUR EINE EINZIGE FRAGE PRO ANTWORT. Frage nach Genre, Stimmung, Spielstil (realistisch, Fantasy etc.) und ob der Nutzer AAA-Titel oder Indie-Spiele bevorzugt. STELLE FRAGEN, BIS DU DIR SICHER BIST, GENUG INFOS ZU HABEN (NORMALERWEISE NACH 2-3 ANTWORTEN DES NUTZERS). DEINE ALLERLETZTE ANTWORT MUSS EINE ABSCHLIESSENDE BEMERKUNG SEIN UND DARF KEINE FRAGE MEHR ENTHALTEN. ZUM BEISPIEL: "Perfekt, das reicht mir schon. Ich suche jetzt das passende Spiel für dich!". Setze NUR in diesem finalen Fall 'conversation_complete' auf true. ANTWORTE IMMER IM FOLGENDEN JSON-FORMAT: { "type": "response", "next_question": "Deine nächste Frage ODER die abschließende Bemerkung.", "conversation_complete": false }`;
+const systemPromptConversation = `DU BIST EIN ERFAHRENER GAME-SCOUT. Dein Ziel ist es, in einem lockeren Gespräch die Gaming-Wünsche des Nutzers zu verstehen. 
 
+WICHTIGE REGELN:
+- STELLE IMMER NUR EINE EINZIGE FRAGE PRO ANTWORT
+- Frage gezielt nach GENRE (RPG, Shooter, Racing, etc.)
+- Frage nach STIMMUNG (entspannt, kompetitiv, spannend, etc.) 
+- Frage nach STIL-PRÄFERENZEN (realistisch vs. arcade, AAA vs. indie)
+- Frage nach SPIELZEIT (kurze Sessions vs. lange Abenteuer)
+- Bei Racing-Games: Frage explizit nach "realistisch" vs. "arcade"
+- Bei Shootern: Frage nach "PvP" vs. "Story-Kampagne"
+
+ERKENNE DIESE BEGRIFFE:
+- "real", "realistisch", "authentisch" = Simulation bevorzugt
+- "arcade", "spaß", "casual" = Leichtere Spiele bevorzugt  
+- "AAA", "blockbuster" = Große Studios bevorzugt
+- "indie", "nischig" = Independent Games bevorzugt
+
+STELLE FRAGEN, BIS DU MINDESTENS 2-3 KLARE PRÄFERENZEN HAST.
+
+DEINE ALLERLETZTE ANTWORT muss eine abschließende Bemerkung sein ohne weitere Fragen und 'conversation_complete' auf true setzen.
+
+ANTWORTE IM JSON-FORMAT: { "type": "response", "next_question": "Deine Frage ODER abschließende Bemerkung", "conversation_complete": false }`;
 const systemPromptFinal = `
     You are a highly precise game recommendation engine. Your ONLY task is to analyze the user's conversation and select the single best game from the JSON list of candidates provided in the prompt.
 
@@ -3593,18 +3815,30 @@ function extractKeywordsFromChat(chatHistory, scoreDefinition) {
     const conversationText = " " + chatHistory.map(entry => entry.parts[0].text).join(' ').toLowerCase() + " ";
     const foundKeywords = [];
     
-    // ✅ IMPROVED: Bessere Keyword-Erkennung mit Wort-Grenzen
+    // ✅ VERBESSERTE Keyword-Erkennung
     for (const keyword in scoreDefinition) {
-        const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-        if (regex.test(conversationText)) {
-            foundKeywords.push(keyword);
+        // Behandle zusammengesetzte Begriffe besser
+        if (keyword.includes('-')) {
+            // Für "real-time-strategy" prüfe auch "real time strategy"
+            const alternativeKeyword = keyword.replace(/-/g, ' ');
+            const regexWithDashes = new RegExp(`\\b${keyword.replace(/-/g, '\\-')}\\b`, 'i');
+            const regexWithSpaces = new RegExp(`\\b${alternativeKeyword}\\b`, 'i');
+            
+            if (regexWithDashes.test(conversationText) || regexWithSpaces.test(conversationText)) {
+                foundKeywords.push(keyword);
+            }
+        } else {
+            // Normale Wörter
+            const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+            if (regex.test(conversationText)) {
+                foundKeywords.push(keyword);
+            }
         }
     }
     
     console.log("🔍 Gefundene Keywords:", foundKeywords);
     return foundKeywords;
-} 
-
+}
 async function runIGDBQuery(query) {
     const response = await fetch('/.netlify/functions/call-igdb', { 
         method: 'POST', 
@@ -3634,12 +3868,12 @@ async function findBestGameMatch() {
             return;
         }
 
-        // ✅ FIXED: Verbesserte IGDB-Query für mehr Diversität
+        // ✅ OPTIMIERTE IGDB-Query für mehr Diversität
         const query = `
-            fields name, summary, cover.url, genres.slug, themes.slug, total_rating, first_release_date;
+            fields name, summary, cover.url, genres.slug, themes.slug, total_rating, total_rating_count, first_release_date;
             sort total_rating desc;
             limit 500;
-            where category = 0 & total_rating_count > 30 & version_parent = null & cover != null & first_release_date > 946684800;
+            where category = 0 & total_rating_count > 15 & version_parent = null & cover != null & first_release_date > 946684800;
         `;
         
         const candidateGames = await runIGDBQuery(query);
@@ -3650,14 +3884,14 @@ async function findBestGameMatch() {
             return;
         }
 
-        // ✅ FIXED: Bereits gesehene Spiele korrekt filtern
+        // ✅ Bereits gesehene Spiele korrekt filtern
         let seenGameIds = new Set();
         if (user) {
             const seenGamesSnapshot = await db.collection("users").doc(user.uid).collection("suggestedGames").get();
             seenGameIds = new Set(seenGamesSnapshot.docs.map(doc => doc.data().rawgId));
         }
         
-        // ✅ FIXED: Verbesserte Scoring-Logik
+        // ✅ VERBESSERTE Scoring-Logik mit intelligenten Boni und Mali
         const primaryGenreKeyword = keywords.find(kw => keywordScores[kw]?.isPrimary);
         console.log("🎮 Primäres Genre:", primaryGenreKeyword);
 
@@ -3669,44 +3903,134 @@ async function findBestGameMatch() {
                 
                 let score = 0;
                 let matchedKeywords = [];
+                let hasGenreMatch = false;
+                let hasStyleMatch = false;
 
-                // ✅ IMPROVED: Besseres Genre-Matching
                 keywords.forEach(keyword => {
                     const scoreInfo = keywordScores[keyword];
                     if (!scoreInfo) return;
 
-                    const targetSlugs = scoreInfo.slugs || [scoreInfo.slug].filter(Boolean);
-                    if (targetSlugs.length === 0) targetSlugs.push(keyword);
-                    
+                    const targetSlugs = scoreInfo.slugs || [keyword];
                     const hasMatch = targetSlugs.some(slug => gameAttributes.has(slug));
+                    
                     if (hasMatch) {
                         let points = scoreInfo.points;
                         
-                        // ✅ BONUS: Doppelte Punkte für perfekte Haupt-Genre-Treffer
-                        if (scoreInfo.isPrimary && gameGenres.includes(targetSlugs[0])) {
+                        // ✅ NEUE BONUS-LOGIK
+                        
+                        // 1. Genre-Match Bonus (50% mehr Punkte für direkte Genre-Treffer)
+                        if (scoreInfo.type === 'genre' && gameGenres.some(g => targetSlugs.includes(g))) {
+                            points *= 1.5;
+                            hasGenreMatch = true;
+                        }
+                        
+                        // 2. Primär-Genre extra Bonus (30% mehr für Hauptgenres)
+                        if (scoreInfo.isPrimary && gameGenres.some(g => targetSlugs.includes(g))) {
+                            points *= 1.3;
+                        }
+                        
+                        // 3. Realismus-Bonus für echte Simulationen (doppelte Punkte!)
+                        if ((keyword === 'real' || keyword === 'realistisch') && 
+                            gameGenres.includes('simulation')) {
                             points *= 2;
                         }
                         
-                        score += points;
-                        matchedKeywords.push(`${keyword} (+${points})`);
+                        // 4. AAA vs Indie Konflikt-Erkennung (20% Bonus für passende Matches)
+                        if (scoreInfo.type === 'budget') {
+                            const isLikelyAAA = (game.total_rating_count || 0) > 1000;
+                            if ((keyword === 'aaa' && isLikelyAAA) || 
+                                (keyword === 'indie' && !isLikelyAAA)) {
+                                points *= 1.2;
+                            }
+                        }
+                        
+                        // 5. Racing-spezifische Boni
+                        if (keyword === 'racing' || keyword === 'rennspiel') {
+                            // Arcade-Racing vs. Sim-Racing unterscheiden
+                            if (keywords.includes('real') && gameGenres.includes('simulation')) {
+                                points *= 1.8; // Bonus für Racing-Sims
+                            } else if (keywords.includes('arcade') && gameThemes.includes('arcade')) {
+                                points *= 1.5; // Bonus für Arcade-Racing
+                            }
+                        }
+                        
+                        score += Math.round(points);
+                        matchedKeywords.push(`${keyword} (+${Math.round(points)})`);
+                        
+                        if (scoreInfo.type === 'style') hasStyleMatch = true;
                     }
                 });
+
+                // ✅ MALUS-SYSTEM für schlechte Matches
+                
+                // Realismus vs. Arcade Konflikt (-15 Punkte)
+                if (keywords.includes('real') && gameGenres.includes('arcade')) {
+                    score -= 15;
+                    matchedKeywords.push('arcade-conflict (-15)');
+                }
+                
+                // AAA vs. Indie Konflikt (-10 Punkte)
+                if (keywords.includes('aaa') && gameGenres.includes('indie')) {
+                    score -= 10;
+                    matchedKeywords.push('indie-conflict (-10)');
+                } else if (keywords.includes('indie') && (game.total_rating_count || 0) > 2000) {
+                    score -= 10;
+                    matchedKeywords.push('aaa-conflict (-10)');
+                }
+                
+                // Stimmungs-Konflikte
+                if (keywords.includes('entspannend') && gameGenres.includes('horror')) {
+                    score -= 12;
+                    matchedKeywords.push('horror-relaxing-conflict (-12)');
+                }
+                
+                if (keywords.includes('ruhig') && gameGenres.includes('action')) {
+                    score -= 8;
+                    matchedKeywords.push('action-calm-conflict (-8)');
+                }
+                
+                // Mindest-Score für thematische Treffer
+                if (score > 0 && !hasGenreMatch && !hasStyleMatch) {
+                    score += 5; // Basis-Punkte für thematische Matches
+                }
 
                 return { 
                     ...normalizeGameData(game, 'igdb'), 
                     score, 
                     matchedKeywords,
-                    originalData: game // Behalte Original-IGDB-Daten
+                    originalData: game,
+                    hasGenreMatch,
+                    hasStyleMatch
                 };
             })
             .filter(game => game.score > 0 && !seenGameIds.has(game.id))
-            .sort((a, b) => b.score - a.score);
+            .sort((a, b) => {
+                // ✅ MEHRSTUFIGE SORTIERUNG
+                
+                // 1. Primär nach Score sortieren
+                if (b.score !== a.score) return b.score - a.score;
+                
+                // 2. Bei gleichem Score: Genre-Matches bevorzugen
+                if (b.hasGenreMatch !== a.hasGenreMatch) {
+                    return b.hasGenreMatch ? 1 : -1;
+                }
+                
+                // 3. Style-Matches als nächstes
+                if (b.hasStyleMatch !== a.hasStyleMatch) {
+                    return b.hasStyleMatch ? 1 : -1;
+                }
+                
+                // 4. Zuletzt: Popularität (aber nicht zu dominant)
+                return (b.originalData.total_rating_count || 0) - (a.originalData.total_rating_count || 0);
+            });
 
         console.log("🏆 Top 10 Matches:");
         console.table(scoredGames.slice(0, 10).map(g => ({ 
             Name: g.name, 
             Score: g.score, 
-            Matched: g.matchedKeywords.join(', ') 
+            GenreMatch: g.hasGenreMatch,
+            StyleMatch: g.hasStyleMatch,
+            Matched: g.matchedKeywords.slice(0, 3).join(', ') // Nur erste 3 zeigen
         })));
 
         if (scoredGames.length === 0) {
@@ -3714,17 +4038,24 @@ async function findBestGameMatch() {
             return;
         }
 
-        // ✅ IMPROVED: Bessere Auswahl aus Top-Tier
-        const topTier = scoredGames.slice(0, Math.min(8, scoredGames.length));
-        const chosenGame = topTier[Math.floor(Math.random() * topTier.length)];
+        // ✅ VERBESSERTE Top-Tier Auswahl
+        // Nimm die besten Matches, aber mit etwas Varianz
+        const topTierSize = Math.min(5, scoredGames.length);
+        const topTier = scoredGames.slice(0, topTierSize);
         
-        console.log("🎯 Gewähltes Spiel:", chosenGame.name, "Score:", chosenGame.score);
+        // Bevorzuge Genre-Matches bei der finalen Auswahl
+        const genreMatches = topTier.filter(g => g.hasGenreMatch);
+        const finalSelection = genreMatches.length > 0 ? genreMatches : topTier;
+        
+        const chosenGame = finalSelection[Math.floor(Math.random() * finalSelection.length)];
+        
+        console.log("🎯 Gewähltes Spiel:", chosenGame.name, "Score:", chosenGame.score, "Matches:", chosenGame.matchedKeywords);
 
-        // ✅ FIXED: Verwende die originalen IGDB-Daten für die Beschreibung
+        // ✅ Erstelle personalisierte Beschreibung
         const descriptionText = await createDescriptionForGame(chosenGame.originalData);
         const finalDescription = descriptionText || `Basierend auf deiner Suche scheint "${chosenGame.name}" ein exzellentes Match zu sein!`;
         
-        // ✅ FIXED: Verwende normalisierte Daten für showResult
+        // ✅ Zeige Ergebnis mit verbleibenden Kandidaten
         showResult(chosenGame, finalDescription, scoredGames.slice(1, 21));
 
     } catch (error) {
