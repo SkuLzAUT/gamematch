@@ -3601,28 +3601,32 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
         setLoading(false);
     }
 }
-// ======================================================================
-// DIE NEUE, SCORE-BASIERTE EMPFEHLUNGS-ENGINE
-// ======================================================================
 
-// Extrahiert Keywords aus dem Chat basierend auf unserer Score-Liste
 function extractKeywordsFromChat(chatHistory, scoreDefinition) {
     const conversationText = " " + chatHistory.map(entry => entry.parts[0].text).join(' ').toLowerCase() + " ";
     const foundKeywords = [];
     
+    // ✅ IMPROVED: Bessere Keyword-Erkennung mit Wort-Grenzen
     for (const keyword in scoreDefinition) {
-        // Sucht nach dem exakten Wort, um Teil-Matches zu vermeiden
-        if (new RegExp(`\\s${keyword}\\s`, 'i').test(conversationText)) {
+        const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+        if (regex.test(conversationText)) {
             foundKeywords.push(keyword);
         }
     }
-    console.log("Präzise extrahierte User-Wünsche:", foundKeywords);
+    
+    console.log("🔍 Gefundene Keywords:", foundKeywords);
     return foundKeywords;
-}
+} 
 
 async function runIGDBQuery(query) {
-    const response = await fetch('/.netlify/functions/call-igdb', { method: 'POST', body: JSON.stringify({ query }) });
-    if (!response.ok) return [];
+    const response = await fetch('/.netlify/functions/call-igdb', { 
+        method: 'POST', 
+        body: JSON.stringify({ query }) 
+    });
+    if (!response.ok) {
+        console.error("IGDB API Error:", response.status, await response.text());
+        return [];
+    }
     return await response.json();
 }
 async function findBestGameMatch() {
@@ -3631,49 +3635,55 @@ async function findBestGameMatch() {
         renderGuestLimitMessage();
         return;
     }
-    renderSystemMessage("Analysiere deine Wünsche, bewerte Top-Spiele und finde dein perfektes Match...");
+    
+    renderSystemMessage("Analysiere deine Wünsche und finde dein perfektes Match...");
 
     try {
         const keywords = extractKeywordsFromChat(chatHistory, keywordScores);
+        console.log("🎯 Extrahierte Keywords:", keywords);
+        
         if (keywords.length === 0) {
-            renderErrorState("Ich konnte deine Wünsche nicht klar verstehen. Bitte sei etwas spezifischer.");
+            renderErrorState("Ich konnte deine Wünsche nicht klar verstehen. Bitte sei etwas spezifischer über Genre oder Stimmung.");
             return;
         }
 
+        // ✅ FIXED: Verbesserte IGDB-Query für mehr Diversität
         const query = `
-            fields name, summary, cover.url, genres.slug, themes.slug;
-            sort total_rating_count desc;
-            limit 250;
-            where category = 0 & total_rating_count > 100 & version_parent = null & cover != null;
+            fields name, summary, cover.url, genres.slug, themes.slug, total_rating, first_release_date;
+            sort total_rating desc;
+            limit 500;
+            where category = 0 & total_rating_count > 30 & version_parent = null & cover != null & first_release_date > 946684800;
         `;
+        
         const candidateGames = await runIGDBQuery(query);
+        console.log("📊 Erhaltene Kandidaten:", candidateGames.length);
+        
         if (!candidateGames || candidateGames.length === 0) {
-            renderErrorState("Konnte keine Spiele von der Datenbank abrufen.");
+            renderErrorState("Konnte keine Spiele von der Datenbank abrufen. Bitte versuche es später erneut.");
             return;
         }
 
+        // ✅ FIXED: Bereits gesehene Spiele korrekt filtern
         let seenGameIds = new Set();
         if (user) {
             const seenGamesSnapshot = await db.collection("users").doc(user.uid).collection("suggestedGames").get();
             seenGameIds = new Set(seenGamesSnapshot.docs.map(doc => doc.data().rawgId));
         }
         
+        // ✅ FIXED: Verbesserte Scoring-Logik
         const primaryGenreKeyword = keywords.find(kw => keywordScores[kw]?.isPrimary);
-        const mustHaveSlug = primaryGenreKeyword ? (keywordScores[primaryGenreKeyword].slug || primaryGenreKeyword) : null;
+        console.log("🎮 Primäres Genre:", primaryGenreKeyword);
 
         const scoredGames = candidateGames
             .map(game => {
                 const gameGenres = game.genres ? game.genres.map(g => g.slug) : [];
                 const gameThemes = game.themes ? game.themes.map(t => t.slug) : [];
                 const gameAttributes = new Set([...gameGenres, ...gameThemes]);
+                
                 let score = 0;
                 let matchedKeywords = [];
 
-                if (mustHaveSlug && !gameGenres.includes(mustHaveSlug)) {
-                    return { ...game, score: 0, matchedKeywords: [] };
-                }
-
-                // KORREKTUR: Wir gewichten jetzt, wie gut die Genres passen
+                // ✅ IMPROVED: Besseres Genre-Matching
                 keywords.forEach(keyword => {
                     const scoreInfo = keywordScores[keyword];
                     if (!scoreInfo) return;
@@ -3681,49 +3691,58 @@ async function findBestGameMatch() {
                     const targetSlugs = scoreInfo.slugs || [scoreInfo.slug].filter(Boolean);
                     if (targetSlugs.length === 0) targetSlugs.push(keyword);
                     
-                    if (targetSlugs.some(slug => gameAttributes.has(slug))) {
+                    const hasMatch = targetSlugs.some(slug => gameAttributes.has(slug));
+                    if (hasMatch) {
                         let points = scoreInfo.points;
                         
-                        // Wenn das Hauptgenre des Spiels (das erste in der Liste)
-                        // genau dem gesuchten Hauptgenre entspricht, gibt es einen RIESEN-Bonus.
-                        if (scoreInfo.isPrimary && gameGenres[0] === (scoreInfo.slug || keyword)) {
-                            points *= 2; // Doppelter Bonus für einen perfekten Genre-Treffer!
+                        // ✅ BONUS: Doppelte Punkte für perfekte Haupt-Genre-Treffer
+                        if (scoreInfo.isPrimary && gameGenres.includes(targetSlugs[0])) {
+                            points *= 2;
                         }
                         
                         score += points;
                         matchedKeywords.push(`${keyword} (+${points})`);
                     }
                 });
-                return { ...game, score, matchedKeywords };
+
+                return { 
+                    ...normalizeGameData(game, 'igdb'), 
+                    score, 
+                    matchedKeywords,
+                    originalData: game // Behalte Original-IGDB-Daten
+                };
             })
-            .filter(game => game.score > 0 && !seenGameIds.has(game.id));
+            .filter(game => game.score > 0 && !seenGameIds.has(game.id))
+            .sort((a, b) => b.score - a.score);
+
+        console.log("🏆 Top 10 Matches:");
+        console.table(scoredGames.slice(0, 10).map(g => ({ 
+            Name: g.name, 
+            Score: g.score, 
+            Matched: g.matchedKeywords.join(', ') 
+        })));
 
         if (scoredGames.length === 0) {
-            renderErrorState("Ich konnte leider kein passendes Spiel für diese sehr spezifische Kombination finden.");
+            renderErrorState("Ich konnte leider kein passendes Spiel für diese spezifische Kombination finden. Versuche andere Begriffe!");
             return;
         }
 
-        scoredGames.sort((a, b) => b.score - a.score);
-        
-        console.log("Top 10 Matches:");
-        console.table(scoredGames.slice(0, 10).map(g => ({ Name: g.name, Score: g.score, Matched: g.matchedKeywords.join(', ') })));
-
-        const topTier = scoredGames.slice(0, 5);
+        // ✅ IMPROVED: Bessere Auswahl aus Top-Tier
+        const topTier = scoredGames.slice(0, Math.min(8, scoredGames.length));
         const chosenGame = topTier[Math.floor(Math.random() * topTier.length)];
         
-        console.log("Bestes Match:", chosenGame.name, "Score:", chosenGame.score);
+        console.log("🎯 Gewähltes Spiel:", chosenGame.name, "Score:", chosenGame.score);
 
-        const descriptionText = await createDescriptionForGame(chosenGame);
-        if (descriptionText) {
-            showResult(chosenGame, descriptionText, scoredGames);
-        } else {
-            const fallbackDescription = `Basierend auf deiner Suche scheint "${chosenGame.name}" ein exzellentes Match zu sein!`;
-            showResult(chosenGame, fallbackDescription, scoredGames);
-        }
+        // ✅ FIXED: Verwende die originalen IGDB-Daten für die Beschreibung
+        const descriptionText = await createDescriptionForGame(chosenGame.originalData);
+        const finalDescription = descriptionText || `Basierend auf deiner Suche scheint "${chosenGame.name}" ein exzellentes Match zu sein!`;
+        
+        // ✅ FIXED: Verwende normalisierte Daten für showResult
+        showResult(chosenGame, finalDescription, scoredGames.slice(1, 21));
 
     } catch (error) {
-        console.error("Fehler im findBestGameMatch-Prozess:", error);
-        renderErrorState("Ein schwerwiegender Fehler ist aufgetreten.");
+        console.error("🚨 Fehler im findBestGameMatch-Prozess:", error);
+        renderErrorState("Ein Fehler ist aufgetreten. Bitte versuche es erneut.");
     }
 }
 async function createDescriptionForGame(game) {
@@ -3736,22 +3755,6 @@ async function createDescriptionForGame(game) {
     
     return await callGeminiAPI(descriptionPrompt, systemPromptDescription, false);
 }
-function displayStars(container, avgRating, count) {
-    let starsHtml = '';
-    const rating = Math.round(avgRating * 2) / 2; // Auf halbe Sterne runden
-    for (let i = 1; i <= 5; i++) {
-        if (i <= rating) {
-            starsHtml += '<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>';
-        } else if (i - 0.5 === rating) {
-            starsHtml += '<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292zM10 12.585V3.532l-.836 2.57H6.54l2.138 1.554-.836 2.57L10 12.585z"/></svg>';
-        } else {
-            starsHtml += '<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>';
-        }
-    }
-    container.innerHTML = `<div class="flex items-center">${starsHtml}<span class="text-xs text-gray-400 ml-2">(${count} Stimmen)</span></div>`;
-}
-
-// NEUE FUNKTION 3: Erstellt die interaktiven Sterne zum Bewerten
 function createInteractiveStars(container, gameId, currentRating) {
     container.innerHTML = '';
     const starWrapper = document.createElement('div');
@@ -3893,11 +3896,15 @@ async function compareGamesWithFriend(friendId) {
 async function handleLikeGame(gameData, description) {
     const user = auth.currentUser;
     if (!user) return;
+    
     try {
+        // ✅ KORREKTUR: Verwende die korrekte IGDB cover.url Struktur
+        const imageUrl = gameData.cover ? gameData.cover.url.replace('t_thumb', 't_cover_big') : 'https://placehold.co/600x400';
+        
         await db.collection("users").doc(user.uid).collection("suggestedGames").add({
             title: gameData.name,
             rawgId: gameData.id,
-            imageUrl: gameData.background_image, // Dieses Feld ist jetzt korrekt
+            imageUrl: imageUrl, // ✅ FIXED: Jetzt korrekt
             description: description,
             status: 'liked',
             suggestedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -3914,48 +3921,49 @@ async function handleLikeGame(gameData, description) {
         
         alert(`${gameData.name} wurde zu deinem Profil hinzugefügt!`);
         await grantXpAndCheckLevelUp(user.uid, 15);
+        
+        // ✅ FIXED: Chat-History erst NACH erfolgreichem Like löschen
+        localStorage.removeItem('chatHistory');
+        chatHistory = [];
+        
         startConversation();
     } catch (error) {
         console.error("Fehler beim Liken des Spiels:", error);
         alert("Das Spiel konnte nicht zu deinem Profil hinzugefügt werden.");
     }
 }
-
 async function handleDislikeGame(gameData, description) {
     const user = auth.currentUser;
     if (user) {
         try {
+            // ✅ KORREKTUR: Verwende die korrekte IGDB cover.url Struktur
+            const imageUrl = gameData.cover ? gameData.cover.url.replace('t_thumb', 't_cover_big') : 'https://placehold.co/600x400';
+            
             await db.collection("users").doc(user.uid).collection("suggestedGames").add({
                 title: gameData.name,
                 rawgId: gameData.id,
-                imageUrl: gameData.background_image, // Dieses Feld ist jetzt korrekt
+                imageUrl: imageUrl, // ✅ FIXED: Jetzt korrekt
                 description: description,
                 status: 'disliked',
                 suggestedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-        } catch (e) { console.error("Fehler beim Speichern des Dislikes:", e); }
+        } catch (e) { 
+            console.error("Fehler beim Speichern des Dislikes:", e); 
+        }
     }
 
     if (currentGameCandidates && currentGameCandidates.length > 0) {
-        // ... (Der Rest der Funktion zum Finden des nächsten Spiels bleibt gleich) ...
         const nextGame = currentGameCandidates[0];
-        const formattedNextGame = {
-            id: nextGame.id,
-            name: nextGame.name,
-            background_image: nextGame.cover ? nextGame.cover.url.replace('t_thumb', 't_cover_big') : 'https://placehold.co/600x400',
-            genres: nextGame.genres || [],
-            themes: nextGame.themes || [],
-            game_modes: nextGame.game_modes || []
-        };
-        const gameFacts = {
-            name: formattedNextGame.name,
-            genres: formattedNextGame.genres.map(g => g.name).join(', '),
-            themes: formattedNextGame.themes.map(t => t.name).join(', ')
-        };
-        const descriptionPrompt = `Write a short, exciting recommendation for the following game based on these facts...`; // Gekürzt für Übersicht
+        currentGameCandidates = currentGameCandidates.slice(1); // Entferne das erste Element
+        
+        // ✅ KORREKTUR: Verwende normalisierte Datenstruktur für IGDB-Spiele
+        const normalizedNextGame = normalizeGameData(nextGame, 'igdb');
+        
+        const descriptionPrompt = `Write a short, exciting recommendation for the game "${normalizedNextGame.name}". Its genres are ${normalizedNextGame.genres.map(g => g.name || g.slug).join(', ')} and its themes are ${normalizedNextGame.themes.map(t => t.name || t.slug).join(', ')}. Based on these facts, create the recommendation text in German, addressing the user with "Du".`;
+        
         const newDescription = await callGeminiAPI(descriptionPrompt, systemPromptDescription, false);
         if (newDescription) {
-            showResult(formattedNextGame, newDescription, currentGameCandidates);
+            showResult(normalizedNextGame, newDescription, currentGameCandidates);
         }
     } else {
         renderErrorState("Ich habe leider keine weiteren Vorschläge auf Lager. Lass uns eine neue Suche starten!");
@@ -4294,8 +4302,17 @@ function escapeJS(str) {
               .replace(/"/g, '\\"')
               .replace(/\n/g, '\\n');
 }
-
-// NEUE FUNKTION: Öffnet und befüllt das Modal
+function normalizeGameData(game, source = 'igdb') {
+    if (source === 'igdb') {
+        return {
+            id: game.id,
+            name: game.name,
+            cover: game.cover, // Behalte die originale IGDB-Struktur
+            summary: game.summary || '',
+            genres: game.genres || [],
+            themes: game.themes || []
+        };
+    }
 async function openCommentModal(gameId, title, imageUrl, description, isOwnProfile) {
     const modal = document.getElementById('game-detail-modal');
     
@@ -4371,11 +4388,12 @@ document.getElementById('game-detail-modal').addEventListener('click', (e) => {
 async function showResult(finalGame, finalDescription, igdbResults) {
     setLoading(false);
     try {
+        // ✅ FIXED: Verwende korrekte IGDB-Datenstruktur
         currentGameCandidates = igdbResults.filter(g => g.id !== finalGame.id);
 
         const resultContainer = ui.resultContainer;
         
-        // Nutzt die korrekte Bild-URL aus dem 'cover'-Objekt von IGDB
+        // ✅ FIXED: Korrekte Bild-URL aus IGDB cover-Objekt
         const imageUrl = finalGame.cover ? finalGame.cover.url.replace('t_thumb', 't_cover_big') : 'https://placehold.co/600x400';
         
         resultContainer.querySelector('#result-img').src = imageUrl;
@@ -4401,7 +4419,7 @@ async function showResult(finalGame, finalDescription, igdbResults) {
             });
         }
         
-        // Like/Dislike-Buttons anzeigen
+        // ✅ FIXED: Like/Dislike-Buttons mit korrekten Daten
         document.getElementById('result-action-container')?.remove();
         const actionContainer = document.createElement('div');
         actionContainer.id = 'result-action-container';
@@ -4412,6 +4430,7 @@ async function showResult(finalGame, finalDescription, igdbResults) {
         `;
         resultContainer.appendChild(actionContainer);
         
+        // ✅ FIXED: Event-Handler mit normalisierten Daten
         document.getElementById('like-btn').onclick = () => handleLikeGame(finalGame, finalDescription);
         document.getElementById('dislike-btn').onclick = () => handleDislikeGame(finalGame, finalDescription);
 
@@ -4422,16 +4441,13 @@ async function showResult(finalGame, finalDescription, igdbResults) {
         if (!auth.currentUser) {
             incrementGuestUsage();
         }
+        
         if (!document.querySelector('.confetti-canvas-active')) {
              fireConfetti();
         }
 
-        // KORREKTUR: Lösche den Chat-Verlauf, nachdem ein Ergebnis angezeigt wurde.
-        localStorage.removeItem('chatHistory');
-        chatHistory = []; // Setze auch die Variable im Speicher zurück.
-
     } catch (e) {
-        console.error("Error in showResult:", e);
+        console.error("🚨 Error in showResult:", e);
         renderErrorState("Fehler beim Anzeigen des finalen Ergebnisses.");
     }
 }
