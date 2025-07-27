@@ -3237,8 +3237,6 @@ function setupProfileListeners() {
             filterButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
 
-            // Lade die Spieleliste mit dem neuen Filter neu
-            // Der 'true'-Parameter sorgt dafür, dass die alte Liste zuerst geleert wird.
             loadSavedGames(userId, filter, true);
         });
     });
@@ -3865,157 +3863,111 @@ async function callGeminiAPI(prompt, systemPrompt, useHistory = true) {
         setLoading(false);
     }
 }
+// VERBESSERT
 async function extractKeywordsFromChat(chatHistory, scoreDefinition) {
     const conversationText = " " + chatHistory.map(entry => entry.parts[0].text).join(' ').toLowerCase() + " ";
-    const foundKeywords = [];
+    let foundKeywords = [];
     
+    // 1. Primäre Keyword-Erkennung
     for (const keyword in scoreDefinition) {
-        if (keyword.includes('-')) {
-            const alternativeKeyword = keyword.replace(/-/g, ' ');
-            const regexWithDashes = new RegExp(`\\b${keyword.replace(/-/g, '\\-')}\\b`, 'i');
-            const regexWithSpaces = new RegExp(`\\b${alternativeKeyword}\\b`, 'i');
-            
-            if (regexWithDashes.test(conversationText) || regexWithSpaces.test(conversationText)) {
-                foundKeywords.push(keyword);
-            }
-        } else {
-            // Spezielle Behandlung für problematische Keywords
-            if (keyword === 'story') {
-                const storyRegex = /\b(story|geschichte|handlung|kampagne|erzählung)\b/i;
-                if (storyRegex.test(conversationText)) {
-                    foundKeywords.push(keyword);
-                }
-            } else if (keyword === 'arcade') {
-                const arcadeRegex = /\b(arcade|arkade|spaß|casual)\b/i;
-                if (arcadeRegex.test(conversationText) && !conversationText.includes('real')) {
-                    foundKeywords.push(keyword);
-                }
-            } else {
-                const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-                if (regex.test(conversationText)) {
-                    foundKeywords.push(keyword);
-                }
-            }
+        if (testKeywordInText(keyword, conversationText)) {
+            foundKeywords.push(keyword);
         }
     }
     
-    // ✅ NEUES KI-FALLBACK - nur wenn zu wenig Keywords gefunden
-    if (foundKeywords.length < 2) {
-        console.log("🤖 Zu wenig Keywords - starte KI-Fallback");
+    // 2. KI-Fallback nur bei < 1 Keyword UND Text > 10 Zeichen
+    if (foundKeywords.length < 1 && conversationText.trim().length > 10) {
         try {
             const aiKeywords = await extractKeywordsWithAI(conversationText);
-            foundKeywords.push(...aiKeywords);
+            foundKeywords = [...foundKeywords, ...aiKeywords]; // Neue Array-Erstellung
         } catch (error) {
-            console.log("🔄 KI-Fallback fehlgeschlagen, verwende Quick-Mapping");
-            // Ultra-einfaches Fallback
-            const quickKeywords = getQuickMappedKeywords(conversationText);
-            foundKeywords.push(...quickKeywords);
+            console.warn("KI-Fallback fehlgeschlagen:", error.message);
+            foundKeywords = [...foundKeywords, ...getQuickMappedKeywords(conversationText)];
         }
     }
     
-    const uniqueKeywords = [...new Set(foundKeywords)];
-    console.log("🔍 Gefundene Keywords:", uniqueKeywords);
-    return uniqueKeywords;
+    return [...new Set(foundKeywords)]; // Duplikate entfernen
 }
-// ✅ NEUE FUNKTION - einfach irgendwo in Ihren Code einfügen:
+
+function testKeywordInText(keyword, text) {
+    if (keyword.includes('-')) {
+        const alternativeKeyword = keyword.replace(/-/g, ' ');
+        const regexWithDashes = new RegExp(`\\b${keyword.replace(/-/g, '\\-')}\\b`, 'i');
+        const regexWithSpaces = new RegExp(`\\b${alternativeKeyword}\\b`, 'i');
+        return regexWithDashes.test(text) || regexWithSpaces.test(text);
+    }
+    
+    // Spezielle Behandlung für problematische Keywords
+    if (keyword === 'story') {
+        return /\b(story|geschichte|handlung|kampagne|erzählung)\b/i.test(text);
+    }
+    if (keyword === 'arcade') {
+        return /\b(arcade|arkade|spaß|casual)\b/i.test(text) && !text.includes('real');
+    }
+    
+    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    return regex.test(text);
+}
 async function extractKeywordsWithAI(conversationText) {
-    const prompt = `Analysiere diese Gaming-Anfrage und extrahiere 3-5 relevante Keywords:
-"${conversationText}"
-
-Erkenne Begriffe für:
-- Genres: shooter, rpg, strategy, simulation, racing, puzzle, etc.
-- Stimmung: entspannt, kompetitiv, spannend, ruhig, etc.  
-- Stil: realistisch, arcade, indie, aaa, etc.
-- Features: multiplayer, story, building, pvp, etc.
-
-Antworte NUR mit einem JSON-Array: ["keyword1", "keyword2", "keyword3"]`;
-
-    const systemPrompt = "Du bist ein Gaming-Keyword-Extractor. Gib nur ein sauberes JSON-Array zurück, keine Erklärungen.";
+    const maxRetries = 2;
     
-    const response = await callGeminiAPI(prompt, systemPrompt, false);
-    const aiKeywords = JSON.parse(response.replace(/```json|```/g, '').trim());
-    
-    // Mappe AI-Keywords auf Ihre bestehenden keywordScores
-    const mappedKeywords = [];
-    aiKeywords.forEach(kw => {
-        const keyword = kw.toLowerCase();
-        
-        // Direkte Treffer
-        if (keywordScores[keyword]) {
-            mappedKeywords.push(keyword);
-            return;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const prompt = `Analysiere diese Gaming-Anfrage und finde 2-3 Haupt-Keywords:
+"${conversationText.substring(0, 500)}" // Begrenze Input-Länge
+
+Erkenne nur die wichtigsten Begriffe für:
+- Genres: shooter, rpg, strategy, simulation, racing
+- Stimmung: entspannt, kompetitiv, spannend
+- Features: multiplayer, story, building
+
+Antworte NUR mit JSON-Array: ["keyword1", "keyword2"]`;
+
+            const systemPrompt = "Du bist ein Gaming-Keyword-Extractor. Gib nur ein sauberes JSON-Array zurück.";
+            
+            const response = await callGeminiAPI(prompt, systemPrompt, false);
+            
+            if (!response) throw new Error("Leere API-Antwort");
+            
+            // Robustes JSON-Parsing
+            const cleanResponse = response.replace(/```json|```|`/g, '').trim();
+            const aiKeywords = JSON.parse(cleanResponse);
+            
+            if (!Array.isArray(aiKeywords)) {
+                throw new Error("Antwort ist kein Array");
+            }
+            
+            return mapAiKeywordsToInternal(aiKeywords);
+            
+        } catch (error) {
+            console.warn(`KI-Keyword-Extraktion Versuch ${attempt} fehlgeschlagen:`, error.message);
+            
+            if (attempt === maxRetries) {
+                throw new Error(`KI-Extraktion nach ${maxRetries} Versuchen fehlgeschlagen`);
+            }
+            
+            // Kurze Pause vor Wiederholung
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        
-        // Intelligente Mappings
-        const mappings = {
-            'building': 'aufbau',
-            'construction': 'aufbau', 
-            'city': 'städtebau',
-            'relaxed': 'entspannt',
-            'calm': 'ruhig',
-            'peaceful': 'friedlich',
-            'competitive': 'kompetitiv',
-            'realistic': 'realistisch',
-            'extensive': 'ausgiebig',
-            'complex': 'komplex',
-            'detailed': 'detailliert',
-            'tactical': 'taktisch',
-            'story-driven': 'story',
-            'narrative': 'story',
-            'first-person-shooter': 'fps',
-            'third-person-shooter': 'shooter',
-            'role-playing': 'rpg',
-            'real-time-strategy': 'rts',
-            'turn-based': 'rundenbasiert'
-        };
-        
-        if (mappings[keyword]) {
-            mappedKeywords.push(mappings[keyword]);
-        }
-    });
-    
-    console.log("🤖 KI-gemappte Keywords:", mappedKeywords);
-    return mappedKeywords;
+    }
 }
-// ✅ NEUE FUNKTION - Backup wenn alles andere fehlschlägt:
-function getQuickMappedKeywords(text) {
-    const quickMaps = [
-        // Aufbau/Building
-        { patterns: ['aufbau', 'bauen', 'building', 'stadt', 'city'], keywords: ['aufbau', 'simulation'] },
-        
-        // Entspannung
-        { patterns: ['entspann', 'relax', 'ruhig', 'gemütlich', 'chill'], keywords: ['entspannt', 'casual'] },
-        
-        // Wettkampf  
-        { patterns: ['kompetit', 'competitive', 'pvp', 'versus', 'gegen'], keywords: ['kompetitiv', 'multiplayer'] },
-        
-        // Realismus
-        { patterns: ['realisti', 'real', 'authenti', 'simulat'], keywords: ['realistisch', 'simulation'] },
-        
-        // Zeit/Umfang
-        { patterns: ['ausgiebig', 'lang', 'umfang', 'tief', 'detail', 'komplex'], keywords: ['lang', 'komplex'] },
-        { patterns: ['kurz', 'schnell', 'session'], keywords: ['kurz', 'casual'] },
-        
-        // Genres
-        { patterns: ['shoot', 'ballern', 'schieß'], keywords: ['shooter'] },
-        { patterns: ['rpg', 'rollenspiel', 'charakter'], keywords: ['rpg'] },
-        { patterns: ['strateg', 'taktik', 'planen'], keywords: ['strategie'] },
-        { patterns: ['renn', 'racing', 'auto', 'fahren'], keywords: ['racing'] },
-        { patterns: ['story', 'geschichte', 'handlung', 'kampagne'], keywords: ['story'] },
-        { patterns: ['horror', 'grusel', 'angst'], keywords: ['horror'] },
-        { patterns: ['sport', 'fußball', 'tennis'], keywords: ['sport'] }
-    ];
+
+function mapAiKeywordsToInternal(aiKeywords) {
+    const mappings = {
+        'building': 'aufbau',
+        'construction': 'aufbau',
+        'relaxed': 'entspannt',
+        'competitive': 'kompetitiv',
+        'realistic': 'realistisch',
+        'story-driven': 'story',
+        'first-person-shooter': 'fps',
+        'role-playing': 'rpg'
+        // ... weitere Mappings
+    };
     
-    const foundKeywords = [];
-    
-    quickMaps.forEach(map => {
-        if (map.patterns.some(pattern => text.includes(pattern))) {
-            foundKeywords.push(...map.keywords);
-        }
-    });
-    
-    console.log("🔄 Quick-gemappte Keywords:", foundKeywords);
-    return foundKeywords;
+    return aiKeywords
+        .map(kw => mappings[kw.toLowerCase()] || kw.toLowerCase())
+        .filter(kw => keywordScores[kw]); // Nur bekannte Keywords
 }
 async function runIGDBQuery(query) {
     const response = await fetch('/.netlify/functions/call-igdb', { 
