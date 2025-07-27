@@ -1859,11 +1859,6 @@ const keywordScores = {
 'umfangreich': { points: 4, type: 'time', slugs: ['role-playing-games-rpg', 'strategy'] },
 };
 
-console.log("🔍 IGDB Genres des ersten Spiels:", candidateGames[0].genres?.map(g => g.slug));
-console.log("🔍 IGDB Themes des ersten Spiels:", candidateGames[0].themes?.map(t => t.slug));
-console.log("🔍 Gesuchte Slugs für 'aufbau':", keywordScores['aufbau'].slugs);
-console.log("🔍 Gesuchte Slugs für 'simulation':", keywordScores['simulation'].slugs);
-
 const translations = {
   de: {
     translation: {
