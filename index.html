@@ -1600,7 +1600,7 @@ const keywordScores = {
     'casual': { points: 3, type: 'mood', slugs: ['casual', 'family'] },
     'hardcore': { points: 3, type: 'mood', slugs: ['difficult', 'simulation'] },
     'retro': { points: 2, type: 'style', slugs: ['retro', 'pixel-graphics'] },
-    'pixel': { points: 2, type: 'style', slugs: ['pixel-graphics', 'retro'] }
+    'pixel': { points: 2, type: 'style', slugs: ['pixel-graphics', 'retro'] },
 };
 const translations = {
   de: {
@@ -2056,11 +2056,6 @@ const translations = {
     }
   }
 };
-// DIREKT NACH DEM `translations`-OBJEKT EINFÜGEN
-
-// Diese Funktion aktualisiert alle Texte auf der Seite
-// ERSETZE DEINE BISHERIGE updateContent FUNKTION HIERMIT
-
 function updateContent() {
   document.querySelectorAll('[data-i18n]').forEach(element => {
     let key = element.getAttribute('data-i18n');
@@ -2323,8 +2318,7 @@ function listenForMessages(friendId, callback) {
       .collection('messages')
       .orderBy('timestamp', 'asc');
       
-    // Gib die von onSnapshot zurückgegebene Funktion direkt zurück
-    return query.onSnapshot(querySnapshot => {
+      return query.onSnapshot(querySnapshot => {
         const messages = [];
         querySnapshot.forEach(doc => {
             messages.push({ id: doc.id, ...doc.data() });
@@ -2332,8 +2326,6 @@ function listenForMessages(friendId, callback) {
         callback(messages);
     });
 }
-// ERSETZE DEINE BISHERIGE openChat FUNKTION
-
 async function openChat(friendId, friendUsername, friendAvatar) {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
@@ -2375,7 +2367,6 @@ async function openChat(friendId, friendUsername, friendAvatar) {
     showPage('#chat-view');
     unsubscribeFromMessages = listenForMessages(friendId, renderMessages);
 }
-// NEUE FUNKTION, UM DIE NACHRICHTEN IM UI DARZUSTELLEN
 function renderMessages(messages) {
     const chatLog = document.getElementById('chat-log-messages');
     const currentUser = auth.currentUser;
@@ -2694,7 +2685,6 @@ loadCommentsForGame(gameId, 'modal-comment-list');
     alert("Fehler beim Speichern deines Kommentars.");
   }
 }
-// ERSETZE DEINE KOMPLETTE loadSavedGames FUNKTION HIERMIT
 
 async function loadSavedGames(userId, filter, isInitialLoad = false) {
     const savedGamesList = document.getElementById('saved-games-list');
@@ -2949,9 +2939,6 @@ function setupProfileListeners() {
         editUsernameBtn.addEventListener('click', handleUsernameChange);
     }
 
-    // ======================================================================
-    // NEUE LOGIK FÜR DIE FILTER-BUTTONS ("Gemocht", "Abgelehnt", etc.)
-    // ======================================================================
     const filterButtons = document.querySelectorAll('#game-filter-buttons .filter-btn');
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -5064,9 +5051,7 @@ async function displayGamingNews() {
     container.innerHTML = `<p class="text-gray-400 text-center">${i18next.t('news_loading')}</p>`;
 
     try {
-        // ======================================================================
-        // NEUE, ROBUSTE QUERY: Holt die 5 neuesten, hoch bewerteten Spiele
-        // ======================================================================
+        
         const threeMonthsAgo = Math.floor(Date.now() / 1000) - (90 * 24 * 60 * 60);
         const query = `
             fields name, cover.url, first_release_date;
@@ -5146,8 +5131,6 @@ async function displayFeaturedGame() {
         container.innerHTML = '';
     }
 }
-
-// NEUE HILFSFUNKTION: Bündelt die Anzeige-Logik
 function renderFeaturedGame(game) {
     const container = document.getElementById('featured-game-card');
     const imageUrl = game.cover ? game.cover.url.replace('t_thumb', 't_cover_big') : '';
@@ -5244,7 +5227,7 @@ function setupPrivacyPolicyAccordion() {
     h2s.forEach(h2 => h2.remove());
 
     container.dataset.accordionInitialized = 'true';
-
+}
     async function displayPopularGames() {
     const container = document.getElementById('popular-games-list');
     if (!container) return;
